@@ -8,6 +8,8 @@ SynthLab  {
 
 	init{
 		|name,graphFunc,test|
+		//SET MIDI DEVICE
+		var srcID = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
 		this.initMidiResources();
 		controlEvent = ();
 		seed = rrand(0, 100);
@@ -24,6 +26,8 @@ SynthLab  {
 			exclude = [\freq , \gate];
 			if (Server.default.pid.isNil,{
 				Server.default.options.memSize = 2.pow(18);
+				Server.default.options.outDevice="Soundflower (64ch)";
+				Server.default.options.sampleRate=44100;
 				Server.default.bootSync;
 			});
 			//do synth def
@@ -76,6 +80,7 @@ SynthLab  {
 		//bind MIDI stuff
 		notematrix = ();
 		MIDIIn.connectAll;
+		srcId
 		//Notes
 		MIDIFunc.noteOn({
 		arg ...args;
@@ -87,14 +92,14 @@ SynthLab  {
 
 			notematrix[ note ] = Synth(name,params);
 
-		},chan:midiChannel);
+		},chan:midiChannel,srcId:srcID);
 		MIDIFunc.noteOff({
 		arg ...args;
 		var note;
 			note = args[1] ;
 			notematrix[ note ].release;
 
-		},chan:midiChannel);
+		},chan:midiChannel,srcId:srcID);
 		//Knobs
 		MIDIFunc.cc({
 			|value,ccNumber|
@@ -105,13 +110,13 @@ SynthLab  {
 					knobs.at(knobIndex).valueAction_( value / 127);
 				});
 			}.defer;
-		},chan:midiChannel);
+		},chan:midiChannel,srcId:srcID);
 		MIDIFunc.noteOn({
 			|velocity,note|
 			if(panels.at(note).notNil,{
 				this.setActivePanel(note);
 			});
-		},chan:midiChannel + 1);
+		},chan:midiChannel + 1,srcId:srcID);
 		^this;
 	}
 	/*Return argument pairs list to use with Synth()*/
@@ -145,7 +150,7 @@ SynthLab  {
 		);
 
 		{
-			var view,s = 0.5, tempPanel;
+			var view,s = 0.8, tempPanel;
 			if (index % 8 == 0,{
 				tempPanel = View(gui.view,Rect(0,0,60*s*4,60*s*2)
 					);
@@ -198,10 +203,8 @@ SynthLab  {
 			activePanel = panelIndex;
 			panels.do({
 				|pan|
-				pan.postln;
 				pan.background_(Color.new(0,0,0,0));
 			});
-			panels.postln;
 			panels.at(activePanel).background_(Color.green);
 		}.defer;
 	}
