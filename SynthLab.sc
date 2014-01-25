@@ -9,7 +9,7 @@ SynthLab  {
 	init{
 		|name,graphFunc,test|
 		//SET MIDI DEVICE
-		var srcID = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
+		var srcID;// = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
 		this.initMidiResources();
 		controlEvent = ();
 		seed = rrand(0, 100);
@@ -26,9 +26,10 @@ SynthLab  {
 			exclude = [\freq , \gate];
 			if (Server.default.pid.isNil,{
 				Server.default.options.memSize = 2.pow(18);
-				Server.default.options.outDevice="Soundflower (64ch)";
+				Server.default.options.outDevice="JackRouter";
 				Server.default.options.sampleRate=44100;
 				Server.default.bootSync;
+				srcID = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
 			});
 			//do synth def
 			sdef = SynthDef( name , {
@@ -60,8 +61,11 @@ SynthLab  {
 				signal = SynthDef.wrap(graphFunc);
 
 				signal = MoogFF.ar( signal,filter,filter_reso,0) ;
-
-				Out.ar( [0,1]  , signal * amp * vol );
+				//ATTENTION
+				//sometimes a note off will got lost and a synth will get stuck
+				//cut it anyway after 30 secs
+				Line.kr(0,1,30,doneAction:2);
+				Out.ar( [0,1,]  , signal * amp * vol );
 			} ).add;
 			Server.default.sync;
 			SynthDescLib.global.synthDescs.at(name).controls.do({
@@ -80,7 +84,6 @@ SynthLab  {
 		//bind MIDI stuff
 		notematrix = ();
 		MIDIIn.connectAll;
-		srcId
 		//Notes
 		MIDIFunc.noteOn({
 		arg ...args;
@@ -89,17 +92,18 @@ SynthLab  {
 			params = this.getParamsArray();
 			params.add(\freq);
 			params.add(note.midicps);
-
+			if (notematrix[ note ].notNil,{notematrix[ note ].release});
 			notematrix[ note ] = Synth(name,params);
 
-		},chan:midiChannel,srcId:srcID);
+		},chan:midiChannel,srcID:srcID);
+		srcID.postln;
 		MIDIFunc.noteOff({
 		arg ...args;
 		var note;
 			note = args[1] ;
 			notematrix[ note ].release;
 
-		},chan:midiChannel,srcId:srcID);
+		},chan:midiChannel,srcID:srcID);
 		//Knobs
 		MIDIFunc.cc({
 			|value,ccNumber|
@@ -110,13 +114,13 @@ SynthLab  {
 					knobs.at(knobIndex).valueAction_( value / 127);
 				});
 			}.defer;
-		},chan:midiChannel,srcId:srcID);
+		},chan:midiChannel,srcID:srcID);
 		MIDIFunc.noteOn({
 			|velocity,note|
 			if(panels.at(note).notNil,{
 				this.setActivePanel(note);
 			});
-		},chan:midiChannel + 1,srcId:srcID);
+		},chan:midiChannel + 1,srcID:srcID);
 		^this;
 	}
 	/*Return argument pairs list to use with Synth()*/
