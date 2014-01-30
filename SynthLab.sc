@@ -2,12 +2,12 @@ SynthLab  {
 	var <>sdef,<>controlEvent,<>notematrix,<>gui,<>buses,<>midiChannel,seed,<>knobs,
 	    <>panels,mainWindow,<>activePanel;
 	*new {
-		|name,graphFunc,test=true|
-		^super.new.init(name,graphFunc,test);
+		|name,graphFunc|
+		^super.new.init(name,graphFunc);
     }
 
 	init{
-		|name,graphFunc,test|
+		|name,graphFunc|
 		//SET MIDI DEVICE
 		var srcID;// = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
 		this.initMidiResources();
@@ -25,9 +25,10 @@ SynthLab  {
 			var controlIndex=0,
 			exclude = [\freq , \gate];
 			if (Server.default.pid.isNil,{
-				Server.default.options.memSize = 2.pow(18);
-				Server.default.options.outDevice="JackRouter";
+				Server.default.options.memSize = 2.pow(20);
+				Server.default.options.outDevice="Soundflower (64ch)";
 				Server.default.options.sampleRate=44100;
+				Server.default.options.numOutputBusChannels = 64;
 				Server.default.bootSync;
 				srcID = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
 			});
@@ -65,7 +66,7 @@ SynthLab  {
 				//sometimes a note off will got lost and a synth will get stuck
 				//cut it anyway after 30 secs
 				Line.kr(0,1,30,doneAction:2);
-				Out.ar( [0,1,]  , signal * amp * vol );
+				Out.ar( [0,1]  , signal * amp * vol );
 			} ).add;
 			Server.default.sync;
 			SynthDescLib.global.synthDescs.at(name).controls.do({

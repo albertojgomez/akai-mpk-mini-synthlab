@@ -48,8 +48,12 @@ l=SynthLab(\grainPWM,{
 (
 
 l=SynthLab(\FMGrain,{
-	|grain_density=10,grain_vol=0.4,grain_duration=0.01,freq,freq2,delay_time=0.2,delay_max=0.2|
-	GrainFM.ar(2,Dust.ar(grain_density*100,grain_vol),grain_duration,freq,freq2);
+	|grain_density=10,grain_vol=0.4,grain_duration=0.01,freq,freq2,delay_time=0.2,delay_max=0.2,
+	reve_size=5,reve_time=3,reve_damp=0.5,reve_spread=15,reve_dry=1
+	|
+	var s;
+	s = GrainFM.ar(2,Dust.ar(grain_density*100,grain_vol),grain_duration,freq,freq2);
+	GVerb.ar(s,reve_size,reve_time,reve_damp, spread:reve_spread,drylevel:reve_dry);
 },1);
 
 )
