@@ -9,7 +9,7 @@ SynthLab  {
 	init{
 		|name,graphFunc|
 		//SET MIDI DEVICE
-		var srcID;// = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
+		var srcID;
 		this.initMidiResources();
 		controlEvent = ();
 		seed = rrand(0, 100);
@@ -26,7 +26,7 @@ SynthLab  {
 			exclude = [\freq , \gate];
 			if (Server.default.pid.isNil,{
 				Server.default.options.memSize = 2.pow(20);
-				Server.default.options.outDevice="Soundflower (64ch)";
+				Server.default.options.outDevice="Built-in Output";
 				Server.default.options.sampleRate=44100;
 				Server.default.options.numOutputBusChannels = 64;
 				Server.default.bootSync;
