@@ -1,3 +1,4 @@
+
 (
 
 l=SynthLab(\PWM,{
@@ -66,7 +67,7 @@ o.memSize = 2.pow(18);
 s.quit;
 s.boot;
 )
-w=Synth(\FM,[\freq,150]);
+w=Synth(\PWM,[\freq,150]);
 w.release
 l.play
 

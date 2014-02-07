@@ -1,5 +1,5 @@
 SynthLab  {
-	var <>sdef,<>controlEvent,<>notematrix,<>gui,<>buses,<>midiChannel,seed,<>knobs,
+	var <>sdef,<>controlEvent,<>notematrix,<>gui,<>buses,<>midiChannel,<>midiCCSelectChannel,seed,<>knobs,
 	    <>panels,mainWindow,<>activePanel;
 	*new {
 		|name,graphFunc|
@@ -8,83 +8,83 @@ SynthLab  {
 
 	init{
 		|name,graphFunc|
-		//SET MIDI DEVICE
-		var srcID;
-		this.initMidiResources();
-		controlEvent = ();
-		seed = rrand(0, 100);
-		buses = () ;
-		knobs = Array.new(128) ;
-		panels = Array.new(16) ;
-		gui = Window.new(
-			name ++ " channel " ++ midiChannel, 1000@500).front;//.background_(Color.black);
-		gui.view.decorator = FlowLayout( gui.view.bounds, 10@10, 5@5 );
-		//wrap in routine so that we can sync with server and get controls
-		{
+		//init server
+		StormServer.singleton;
+		Server.default.doWhenBooted({
+			//SET MIDI DEVICE
+			midiChannel = StormServer.getMidiChannel;
+			midiCCSelectChannel = StormServer.getMidiChannel;
+			controlEvent = ();
+			seed = rrand(0, 100);
+			buses = () ;
+			knobs = Array.new(128) ;
+			panels = Array.new(16) ;
+			gui = Window.new(
+				name ++ " channel " ++ midiChannel, 1000@500).front;//.background_(Color.black);
+			gui.view.decorator = FlowLayout( gui.view.bounds, 10@10, 5@5 );
+			//wrap in routine so that we can sync with server and get controls
+			{
 
-			var controlIndex=0,
-			exclude = [\freq , \gate];
-			if (Server.default.pid.isNil,{
-				Server.default.options.memSize = 2.pow(20);
-				Server.default.options.outDevice="Built-in Output";
-				Server.default.options.sampleRate=44100;
-				Server.default.options.numOutputBusChannels = 64;
-				Server.default.bootSync;
-				srcID = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
-			});
-			//do synth def
-			sdef = SynthDef( name , {
-				| gate = 1,
-				env_attack = 0.5,
-				env_decay  = 0.5,
-				env_sustain = 1,
-				env_release = 1,
-				filter_attack = 0.5,
-				filter_decay  = 0.5, filter_sustain = 1,
-				filter_release  = 1,
-				filter_cutoff=10000, filter_reso=3 ,vol = 1|
-				var signal,env,amp,fenv,filter;
-				//amp env
-				env=Env.adsr(
-					attackTime:env_attack,
-					decayTime:env_decay,
-					sustainLevel:env_sustain,
-					releaseTime:env_release );
-				amp=EnvGen.kr(env, gate, doneAction:2);
-				//filter env
-				fenv=Env.adsr(
-					attackTime:filter_attack,
-					decayTime:filter_decay,
-					sustainLevel:filter_sustain,
-					releaseTime:filter_release );
-				filter=EnvGen.kr(fenv,gate:gate).exprange(50,filter_cutoff);
+				var controlIndex=0,
+				exclude = [\freq , \gate];
+				//do synth def
+				sdef = SynthDef( name , {
+					| gate = 1,
+					env_attack = 0.5,
+					env_decay  = 0.5,
+					env_sustain = 1,
+					env_release = 1,
+					filter_attack = 0.5,
+					filter_decay  = 0.5, filter_sustain = 1,
+					filter_release  = 1,
+					filter_cutoff=10000, filter_reso=3 ,vol = 1|
+					var signal,env,amp,fenv,filter;
+					//amp env
+					env=Env.adsr(
+						attackTime:env_attack,
+						decayTime:env_decay,
+						sustainLevel:env_sustain,
+						releaseTime:env_release );
+					amp=EnvGen.kr(env, gate, doneAction:2);
+					//filter env
+					fenv=Env.adsr(
+						attackTime:filter_attack,
+						decayTime:filter_decay,
+						sustainLevel:filter_sustain,
+						releaseTime:filter_release );
+					filter=EnvGen.kr(fenv,gate:gate).exprange(50,filter_cutoff);
 
-				signal = SynthDef.wrap(graphFunc);
+					signal = SynthDef.wrap(graphFunc);
 
-				signal = MoogFF.ar( signal,filter,filter_reso,0) ;
-				//ATTENTION
-				//sometimes a note off will got lost and a synth will get stuck
-				//cut it anyway after 30 secs
-				Line.kr(0,1,30,doneAction:2);
-				Out.ar( [0,1]  , signal * amp * vol );
-			} ).add;
-			Server.default.sync;
-			SynthDescLib.global.synthDescs.at(name).controls.do({
-			|control|
-				if ( exclude.indexOf( control.name ).isNil ,{
-					controlEvent[ control.name ]=this.makecSpec(control,controlIndex);
-					buses [ control.name ] = Bus.control.set(
-						controlEvent[ control.name ].default
-					);
-					controlIndex = controlIndex+1;
+					signal = MoogFF.ar( signal,filter,filter_reso,0) ;
+					//ATTENTION
+					//sometimes a note off will got lost and a synth will get stuck
+					//cut it anyway after 30 secs
+					Line.kr(0,1,30,doneAction:2);
+					Out.ar( [0,1]  , signal * amp * vol );
+				} ).add;
+				StormServer.sync;
+				SynthDescLib.global.synthDescs.at(name).controls.do({
+					|control|
+					if ( exclude.indexOf( control.name ).isNil ,{
+						controlEvent[ control.name ]=this.makecSpec(control,controlIndex);
+						("setting "++control.name++":").post;controlEvent[ control.name ].default.postln;
+						buses [ control.name ] = Bus.control.set(
+							controlEvent[ control.name ].default
+						);
+
+						controlIndex = controlIndex+1;
+					});
 				});
-			});
-			this.setActivePanel();
-		}.fork;
+				this.setActivePanel();
+			}.fork;
+		});//END OF CODE RUN whith doWhenBooted
+
+
+
 
 		//bind MIDI stuff
 		notematrix = ();
-		MIDIIn.connectAll;
 		//Notes
 		MIDIFunc.noteOn({
 		arg ...args;
@@ -93,18 +93,20 @@ SynthLab  {
 			params = this.getParamsArray();
 			params.add(\freq);
 			params.add(note.midicps);
-			if (notematrix[ note ].notNil,{notematrix[ note ].release});
+			if (notematrix[ note ].notNil,{
+				notematrix[ note ].release
+			});
+
 			notematrix[ note ] = Synth(name,params);
 
-		},chan:midiChannel,srcID:srcID);
-		srcID.postln;
+		},chan:midiChannel,srcID:StormServer.getDevice);
 		MIDIFunc.noteOff({
 		arg ...args;
 		var note;
 			note = args[1] ;
 			notematrix[ note ].release;
 
-		},chan:midiChannel,srcID:srcID);
+		},chan:midiChannel,srcID:StormServer.getDevice);
 		//Knobs
 		MIDIFunc.cc({
 			|value,ccNumber|
@@ -115,13 +117,13 @@ SynthLab  {
 					knobs.at(knobIndex).valueAction_( value / 127);
 				});
 			}.defer;
-		},chan:midiChannel,srcID:srcID);
+		},chan:midiChannel,srcID:StormServer.getDevice);
 		MIDIFunc.noteOn({
 			|velocity,note|
 			if(panels.at(note).notNil,{
 				this.setActivePanel(note);
 			});
-		},chan:midiChannel + 1,srcID:srcID);
+		},chan:midiCCSelectChannel,srcID:StormServer.getDevice);
 		^this;
 	}
 	/*Return argument pairs list to use with Synth()*/
@@ -194,13 +196,7 @@ SynthLab  {
 		}.defer;
 		^cspec;
 	}
-	/*handles midi channels for synth*/
-	initMidiResources{
-		if(~midiChans.isNil,{~midiChans = [];~midiCounter = 0});
-		//we only choose even numbers cos we leave odds for pads o same program
-		midiChannel = ~midiCounter * 2;
-		~midiCounter = ~midiCounter + 1;
-	}
+
 	//must be called once we are sure the panels exist
 	setActivePanel{
 		|panelIndex = 0|
