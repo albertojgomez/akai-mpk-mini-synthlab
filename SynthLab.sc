@@ -1,13 +1,14 @@
 SynthLab  {
 	var <>sdef,<>controlEvent,<>notematrix,<>gui,<>buses,<>midiChannel,<>midiCCSelectChannel,seed,<>knobs,
-	    <>panels,mainWindow,<>activePanel;
+	    <>panels,mainWindow,<>activePanel,<>name;
 	*new {
-		|name,graphFunc|
-		^super.new.init(name,graphFunc);
+		|nameparam,graphFunc|
+		^super.new.init(nameparam,graphFunc);
     }
 
 	init{
-		|name,graphFunc|
+		|nameparam,graphFunc|
+		name = nameparam;
 		//init server
 		StormServer.singleton;
 		Server.default.doWhenBooted({
@@ -68,62 +69,21 @@ SynthLab  {
 					|control|
 					if ( exclude.indexOf( control.name ).isNil ,{
 						controlEvent[ control.name ]=this.makecSpec(control,controlIndex);
-						("setting "++control.name++":").post;controlEvent[ control.name ].default.postln;
 						buses [ control.name ] = Bus.control.set(
 							controlEvent[ control.name ].default
 						);
-
 						controlIndex = controlIndex+1;
 					});
 				});
 				this.setActivePanel();
 			}.fork;
+			//bind MIDI stuff
+			notematrix = ();
+			StormServer.connectMidi(this);
+
 		});//END OF CODE RUN whith doWhenBooted
 
 
-
-
-		//bind MIDI stuff
-		notematrix = ();
-		//Notes
-		MIDIFunc.noteOn({
-		arg ...args;
-		var note,params;
-			note = args[1] ;
-			params = this.getParamsArray();
-			params.add(\freq);
-			params.add(note.midicps);
-			if (notematrix[ note ].notNil,{
-				notematrix[ note ].release
-			});
-
-			notematrix[ note ] = Synth(name,params);
-
-		},chan:midiChannel,srcID:StormServer.getDevice);
-		MIDIFunc.noteOff({
-		arg ...args;
-		var note;
-			note = args[1] ;
-			notematrix[ note ].release;
-
-		},chan:midiChannel,srcID:StormServer.getDevice);
-		//Knobs
-		MIDIFunc.cc({
-			|value,ccNumber|
-			{
-				var knobIndex;
-				knobIndex = (activePanel * 8) + ccNumber - 1;
-				if (knobs.at(knobIndex).notNil,{
-					knobs.at(knobIndex).valueAction_( value / 127);
-				});
-			}.defer;
-		},chan:midiChannel,srcID:StormServer.getDevice);
-		MIDIFunc.noteOn({
-			|velocity,note|
-			if(panels.at(note).notNil,{
-				this.setActivePanel(note);
-			});
-		},chan:midiCCSelectChannel,srcID:StormServer.getDevice);
 		^this;
 	}
 	/*Return argument pairs list to use with Synth()*/
