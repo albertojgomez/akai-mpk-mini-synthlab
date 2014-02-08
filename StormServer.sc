@@ -67,46 +67,46 @@ StormServer  {
 		//midiChannel = synthlab.activePanel,
 
 		//Notes
-			MIDIFunc.noteOn({
-				arg ...args;
-				var note,params;
-				note = args[1] ;
-				name.postln;
-				params = synthlab.getParamsArray();
-				params.add(\freq);
-				params.add(note.midicps);
-				if (notematrix[ note ].notNil,{
-					notematrix[ note ].release
+		MIDIFunc.noteOn({
+			arg ...args;
+			var note,params;
+			note = args[1] ;
+			name.postln;
+			params = synthlab.getParamsArray();
+			params.add(\freq);
+			params.add(note.midicps);
+			if (notematrix[ note ].notNil,{
+				notematrix[ note ].release
+			});
+
+			notematrix[ note ] = Synth(name,params);
+
+		},chan:midiChannel,srcID:StormServer.getDevice);
+		MIDIFunc.noteOff({
+			arg ...args;
+			var note;
+			note = args[1] ;
+			notematrix[ note ].release;
+
+		},chan:midiChannel,srcID:StormServer.getDevice);
+		//Knobs
+		MIDIFunc.cc({
+			|value,ccNumber|
+			{
+				var knobIndex;
+				knobIndex = (synthlab.activePanel * 8) + ccNumber - 1;
+				if (knobs.at(knobIndex).notNil,{
+					knobs.at(knobIndex).valueAction_( value / 127);
 				});
-
-				notematrix[ note ] = Synth(name,params);
-
-			},chan:midiChannel,srcID:StormServer.getDevice);
-			("will listen on "++ midiChannel).postln;
-			MIDIFunc.noteOff({
-				arg ...args;
-				var note;
-				note = args[1] ;
-				notematrix[ note ].release;
-
-			},chan:midiChannel,srcID:StormServer.getDevice);
-			//Knobs
-			MIDIFunc.cc({
-				|value,ccNumber|
-				{
-					var knobIndex;
-					knobIndex = (activePanel * 8) + ccNumber - 1;
-					if (knobs.at(knobIndex).notNil,{
-						knobs.at(knobIndex).valueAction_( value / 127);
-					});
-				}.defer;
-			},chan:midiChannel,srcID:StormServer.getDevice);
-			MIDIFunc.noteOn({
-				|velocity,note|
-				if(panels.at(note).notNil,{
-					this.setActivePanel(note);
-				});
-			},chan:midiCCSelectChannel,srcID:StormServer.getDevice);
+			}.defer;
+		},chan:midiChannel,srcID:StormServer.getDevice);
+		MIDIFunc.noteOn({
+			|velocity,note|
+			if(panels.at(note).notNil,{
+				note.postln;
+				synthlab.setActivePanel(note);
+			});
+		},chan:midiCCSelectChannel,srcID:StormServer.getDevice);
 	}
 
 	method{

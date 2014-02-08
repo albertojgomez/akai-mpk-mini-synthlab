@@ -9,6 +9,7 @@ SynthLab  {
 	init{
 		|nameparam,graphFunc|
 		name = nameparam;
+		activePanel = 0;
 		//init server
 		StormServer.singleton;
 		Server.default.doWhenBooted({
@@ -25,7 +26,6 @@ SynthLab  {
 			gui.view.decorator = FlowLayout( gui.view.bounds, 10@10, 5@5 );
 			//wrap in routine so that we can sync with server and get controls
 			{
-
 				var controlIndex=0,
 				exclude = [\freq , \gate];
 				//do synth def
