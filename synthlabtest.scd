@@ -2,16 +2,23 @@
 (
 
 l=SynthLab(\PWM,{
-	|freq=100,subosc_sawvol = 0.5,subosc_sawtune = 0.01,pulse_range = 0.2|
+	|freq=100,subosc_sawvol = 0.5,subosc_sawtune = 0.01,pulse_range = 0.2,rev_size=0.1,
+	rev_mix = 0.33,rev_damp=0.5|
 	var pwm,saw;
 	pwm = Pulse.ar(freq,SinOsc.kr(1).range(0.5 - pulse_range,0.5 + pulse_range),0.8);
 	saw = LFSaw.ar((freq + (freq * (subosc_sawtune - 0.5) / 50) ) / 2 ,mul:subosc_sawvol);
-	Mix([pwm,saw])
+	FreeVerb2.ar(Mix([pwm,saw]),Mix([pwm,saw]),rev_mix,rev_size,rev_damp);
 });
 
 )
-l.midiChannel
-l.midiCCSelectChannel
+StormPattern(l)
+a = l.getParamsArray
+a.
+a.add(100)
+b = a.asArray
+b[\freq] = 100
+a
+b.asList
 
 (
 
@@ -70,7 +77,9 @@ s.quit;
 s.boot;
 )
 w=Synth(\PWM,[\freq,150]);
-w.release
+w.set(\gate,0)
+w.get(\gate)
+w.node
 l.play
 
 

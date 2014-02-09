@@ -1,5 +1,5 @@
 StormServer  {
-	var <>variablev,<>midiCounter,<s,<midiDevice;
+	var <>variablev,<>midiCounter,<s,<midiDevice, <>window;
 
 	*singleton{
 		if(~single.isNil,{~single = StormServer()});
@@ -42,7 +42,14 @@ StormServer  {
 	}
 
 	initGUI{
+		window = Window.new("St0rmB0tn3t", 1000@500).front;
+		window.view.decorator = FlowLayout( window.view.bounds, 10@10, 5@5 );
+	}
 
+	*getGUI{
+		|synthlab|
+
+		^View(StormServer.singleton.window,1000@100);
 	}
 
 	initMidi{
@@ -76,6 +83,7 @@ StormServer  {
 			params.add(\freq);
 			params.add(note.midicps);
 			if (notematrix[ note ].notNil,{
+				notematrix[ note ].get(\gate).postln;
 				notematrix[ note ].release
 			});
 
@@ -86,7 +94,9 @@ StormServer  {
 			arg ...args;
 			var note;
 			note = args[1] ;
+			'b4'.post;
 			notematrix[ note ].release;
+			'afert'.postln;
 
 		},chan:midiChannel,srcID:StormServer.getDevice);
 		//Knobs

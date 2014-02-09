@@ -21,9 +21,8 @@ SynthLab  {
 			buses = () ;
 			knobs = Array.new(128) ;
 			panels = Array.new(16) ;
-			gui = Window.new(
-				name ++ " channel " ++ midiChannel, 1000@500).front;//.background_(Color.black);
-			gui.view.decorator = FlowLayout( gui.view.bounds, 10@10, 5@5 );
+			gui = StormServer.getGUI;
+
 			//wrap in routine so that we can sync with server and get controls
 			{
 				var controlIndex=0,
@@ -46,7 +45,7 @@ SynthLab  {
 						decayTime:env_decay,
 						sustainLevel:env_sustain,
 						releaseTime:env_release );
-					amp=EnvGen.kr(env, gate, doneAction:2);
+					amp=EnvGen.kr(env, gate);
 					//filter env
 					fenv=Env.adsr(
 						attackTime:filter_attack,
@@ -62,7 +61,9 @@ SynthLab  {
 					//sometimes a note off will got lost and a synth will get stuck
 					//cut it anyway after 30 secs
 					Line.kr(0,1,30,doneAction:2);
-					Out.ar( [0,1]  , signal * amp * vol );
+					signal = signal * amp * vol;
+					Out.ar( [0,1]  , signal );
+					DetectSilence.ar(signal,doneAction:2);
 				} ).add;
 				StormServer.sync;
 				SynthDescLib.global.synthDescs.at(name).controls.do({
@@ -119,8 +120,7 @@ SynthLab  {
 		{
 			var view,s = 0.8, tempPanel;
 			if (index % 8 == 0,{
-				tempPanel = View(gui.view,Rect(0,0,60*s*4,60*s*2)
-					);
+				tempPanel = View(gui,Rect(60*s*4*panels.size ,0,60*s*4,60*s*2));
 				panels = panels.add(tempPanel);
 
 			},{
@@ -177,11 +177,12 @@ SynthLab  {
 			\cutoff : [\exp, 20, 20500],
 			\attack : [\lin, 0, 10] ,
 			\decay : [\lin, 0, 10] ,
-			\release : [\lin, 0, 10]
+			\release : [\lin, 0.0001, 10]
 		);
 		if (known[paramName].isNil,
 			{
-				^[\lin, 0, 1];
+				//zero in  some param make the whole thing go apeshit
+				^[\lin, 0.0001, 1];
 			},
 			{
 				^known[paramName]

@@ -37,7 +37,7 @@ MIDIFunc.noteOn({
 		arg ...args;
 		var note,params;
 	Synth("bassdrum");
-		},srcID:MIDIIn.findPort("IAC Driver", "Bus 1").uid);
+		},chan:5);
 
 Synth("bassdrum")
 Synth("snare")
@@ -52,3 +52,6 @@ MIDIClient.sources[0].uid
 MIDIIn.findPort("IAC Driver", "Bus 1").uid
 MIDIClient.init;
 MIDIClient.sources[0].uid
+e = [a:1,b:2]
+e.add(\c)
+e.add(3)
