@@ -1,5 +1,5 @@
 StormServer  {
-	var <>variablev,<>midiCounter,<s,<midiDevice, <>window;
+	var <>variablev,<>midiCounter,<s,<midiDevice, <>window, <>sequencerTracks,<>clock;
 
 	*singleton{
 		if(~single.isNil,{~single = StormServer()});
@@ -13,7 +13,8 @@ StormServer  {
 
 	init{
 		MIDIIn.connectAll;
-		midiDevice = MIDIIn.findPort("MPK mini", "MPK mini").uid;
+		midiDevice = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
+		//midiDevice = MIDIIn.findPort("MPK mini", "MPK mini").uid;
 		{
 			s = Server.default;
 			s.options.memSize = 2.pow(20);
@@ -21,8 +22,16 @@ StormServer  {
 			//s.options.sampleRate=48000;
 			//s.options.numOutputBusChannels = 64;
 			s.bootSync;
-
 			s.sync;
+			TempoClock.default.tempo = 135*4/60;
+			clock = TempoClock.default;
+			sequencerTracks = Array.new(4);
+			4.do({
+				|i|
+				sequencerTracks.add(PbindProxy.new.set(\freq,\rest));
+			});
+			~seqCounter = 0;
+			clock.schedAbs(clock.nextTimeOnGrid(64), { Ppar(sequencerTracks).play(quant:4) });
 		}.fork;
 		midiCounter = 0;
 		this.initGUI();
@@ -61,6 +70,13 @@ StormServer  {
 		temp = StormServer.singleton.midiCounter;
 		StormServer.singleton.midiCounter = StormServer.singleton.midiCounter + 1;
 		^temp;
+	}
+
+	*getSequencerTrack{
+		var temp;
+		temp = ~seqCounter;
+		~seqCounter  = ~seqCounter+1;
+		^StormServer.singleton.sequencerTracks[temp];
 	}
 
 	*connectMidi{

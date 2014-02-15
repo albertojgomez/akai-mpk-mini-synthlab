@@ -52,6 +52,5 @@ MIDIClient.sources[0].uid
 MIDIIn.findPort("IAC Driver", "Bus 1").uid
 MIDIClient.init;
 MIDIClient.sources[0].uid
-e = [a:1,b:2]
-e.add(\c)
-e.add(3)
+Scale.choose.degrees+30
+			TempoClock.default.tempo = 115*4/60;

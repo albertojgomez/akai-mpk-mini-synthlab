@@ -1,5 +1,5 @@
 StormPattern  {
-	var <>scale,<>synth,<>pattern;
+	var <>scale,<>synth,<>pattern,<>track;
 
 	*new {
 		|synthlab|
@@ -8,14 +8,24 @@ StormPattern  {
 
 	init{
 		|synthlab|
-		var params;
+		var params,key = false;
 		synth = synthlab;
+		track = StormServer.getSequencerTrack();
 		params = synth.getParamsArray;
-		params.add(\instrument);
-		params.add(synth.name);
-		params.add(\freq);
-		params.add(Pseq([60.midicps],inf));
-		Pbind(*params).play;
+		params.do({
+			|value|
+			if (key == false,{
+				key = value;
+			},{
+					track.set(key,value);
+					key = false;
+			});
+		});
+		track.set(\instrument,synth.name);
+		track.set(\freq,Pseq(Scale.choose.degrees+150,inf));
+
+		//params.add(track);
+		//Pbind(*params).play;
 	}
 
 

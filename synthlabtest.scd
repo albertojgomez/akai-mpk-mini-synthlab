@@ -7,12 +7,12 @@ l=SynthLab(\PWM,{
 	var pwm,saw;
 	pwm = Pulse.ar(freq,SinOsc.kr(1).range(0.5 - pulse_range,0.5 + pulse_range),0.8);
 	saw = LFSaw.ar((freq + (freq * (subosc_sawtune - 0.5) / 50) ) / 2 ,mul:subosc_sawvol);
-	FreeVerb2.ar(Mix([pwm,saw]),Mix([pwm,saw]),rev_mix,rev_size,rev_damp);
+	FreeVerb2.ar(Mix([pwm,saw]),Mix([pwm,saw]),rev_mix,rev_size*10,rev_damp);
 });
 
 )
 StormPattern(l)
-a = l.getParamsArray
+a = l.getParamsArray[17]
 a.
 a.add(100)
 b = a.asArray
