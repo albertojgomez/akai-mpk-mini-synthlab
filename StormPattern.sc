@@ -22,10 +22,8 @@ StormPattern  {
 			});
 		});
 		track.set(\instrument,synth.name);
-		track.set(\freq,Pseq(Scale.choose.degrees+150,inf));
-
-		//params.add(track);
-		//Pbind(*params).play;
+		track.set(\freq,Pseq([\rest],inf));
+		^this;
 	}
 
 

@@ -11,14 +11,11 @@ l=SynthLab(\PWM,{
 });
 
 )
-StormPattern(l)
+p = StormPattern(l)
+p.track.set(\freq,Pseq([65.midicps],inf))
+
 a = l.getParamsArray[17]
-a.
-a.add(100)
-b = a.asArray
-b[\freq] = 100
-a
-b.asList
+
 
 (
 
@@ -30,7 +27,7 @@ f=SynthLab(\sigma,{
 } );
 
 )
-
+q StormPattern(f)
 
 (
 

@@ -13,8 +13,8 @@ StormServer  {
 
 	init{
 		MIDIIn.connectAll;
-		midiDevice = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
-		//midiDevice = MIDIIn.findPort("MPK mini", "MPK mini").uid;
+		//midiDevice = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
+		midiDevice = MIDIIn.findPort("MPK mini", "MPK mini").uid;
 		{
 			s = Server.default;
 			s.options.memSize = 2.pow(20);

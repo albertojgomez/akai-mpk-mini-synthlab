@@ -1,6 +1,6 @@
 SynthLab  {
 	var <>sdef,<>controlEvent,<>notematrix,<>gui,<>buses,<>midiChannel,<>midiCCSelectChannel,seed,<>knobs,
-	    <>panels,mainWindow,<>activePanel,<>name;
+	    <>panels,mainWindow,<>activePanel,<>name,<>sequencer;
 	*new {
 		|nameparam,graphFunc|
 		^super.new.init(nameparam,graphFunc);
@@ -81,9 +81,8 @@ SynthLab  {
 			//bind MIDI stuff
 			notematrix = ();
 			StormServer.connectMidi(this);
-
+			sequencer = StormPattern(this);
 		});//END OF CODE RUN whith doWhenBooted
-
 
 		^this;
 	}
