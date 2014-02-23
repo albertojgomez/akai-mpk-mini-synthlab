@@ -1,5 +1,6 @@
 StormServer  {
-	var <>variablev,<>midiCounter,<s,<midiDevice, <>window, <>sequencerTracks,<>clock;
+	var <>variablev,<>midiCounter,<s,<midiDevice,
+	<>window, <>sequencerTracks,<>clock,<>size;
 
 	*singleton{
 		if(~single.isNil,{~single = StormServer()});
@@ -12,15 +13,20 @@ StormServer  {
     }
 
 	init{
+		size = 0.7;
 		MIDIIn.connectAll;
-		//midiDevice = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
-		midiDevice = MIDIIn.findPort("MPK mini", "MPK mini").uid;
+		midiDevice = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
+		//midiDevice = MIDIIn.findPort("MPK mini", "MPK mini").uid;
 		{
 			s = Server.default;
 			s.options.memSize = 2.pow(20);
-			s.options.outDevice="Built-in Output";
-			//s.options.sampleRate=48000;
+
+			//s.options.outDevice="Soundflower (64ch)";
+			//s.options.sampleRate=44100;
 			//s.options.numOutputBusChannels = 64;
+			s.options.outDevice="Built-in Output";
+			s.options.sampleRate=48000;
+
 			s.bootSync;
 			s.sync;
 			TempoClock.default.tempo = 135*4/60;
@@ -50,15 +56,19 @@ StormServer  {
 		^StormServer.singleton.midiDevice;
 	}
 
+	*getClock{
+		^StormServer.singleton.clock;
+	}
+
 	initGUI{
 		window = Window.new("St0rmB0tn3t", 1000@500).front;
-		window.view.decorator = FlowLayout( window.view.bounds, 10@10, 5@5 );
+		window.view.decorator = FlowLayout( window.view.bounds, 0@0, 0@0 );
 	}
 
 	*getGUI{
 		|synthlab|
 
-		^View(StormServer.singleton.window,1000@100);
+		^View(StormServer.singleton.window,(1000@240)*StormServer.guiSize);
 	}
 
 	initMidi{
@@ -94,12 +104,10 @@ StormServer  {
 			arg ...args;
 			var note,params;
 			note = args[1] ;
-			name.postln;
 			params = synthlab.getParamsArray();
 			params.add(\freq);
 			params.add(note.midicps);
 			if (notematrix[ note ].notNil,{
-				notematrix[ note ].get(\gate).postln;
 				notematrix[ note ].release
 			});
 
@@ -110,9 +118,7 @@ StormServer  {
 			arg ...args;
 			var note;
 			note = args[1] ;
-			'b4'.post;
 			notematrix[ note ].release;
-			'afert'.postln;
 
 		},chan:midiChannel,srcID:StormServer.getDevice);
 		//Knobs
@@ -129,7 +135,6 @@ StormServer  {
 		MIDIFunc.noteOn({
 			|velocity,note|
 			if(panels.at(note).notNil,{
-				note.postln;
 				synthlab.setActivePanel(note);
 			});
 		},chan:midiCCSelectChannel,srcID:StormServer.getDevice);
@@ -141,6 +146,10 @@ StormServer  {
 
 	*staticMethod{
 		^Nil;
+	}
+
+	*guiSize{
+		^StormServer.singleton.size;
 	}
 
 

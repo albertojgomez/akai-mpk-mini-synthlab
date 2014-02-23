@@ -5,14 +5,24 @@ l=SynthLab(\PWM,{
 	|freq=100,subosc_sawvol = 0.5,subosc_sawtune = 0.01,pulse_range = 0.2,rev_size=0.1,
 	rev_mix = 0.33,rev_damp=0.5|
 	var pwm,saw;
-	pwm = Pulse.ar(freq,SinOsc.kr(1).range(0.5 - pulse_range,0.5 + pulse_range),0.8);
+	pwm = Pulse.ar(freq,LFTri.kr(1).range(0.5 - pulse_range,0.5 + pulse_range),0.8);
 	saw = LFSaw.ar((freq + (freq * (subosc_sawtune - 0.5) / 50) ) / 2 ,mul:subosc_sawvol);
 	FreeVerb2.ar(Mix([pwm,saw]),Mix([pwm,saw]),rev_mix,rev_size*10,rev_damp);
 });
 
 )
-p = StormPattern(l)
-p.track.set(\freq,Pseq([65.midicps],inf))
+
+l.sequencer.noterange=4
+l.sequencer.density=0
+l.sequencer.length=16
+l.sequencer.root = 45
+l.sequencer.linearity=10
+l.sequencer.chaos=70
+l.sequencer.scale = Scale.choose.postln.degrees
+l.sequencer.mutate
+
+
+
 
 a = l.getParamsArray[17]
 
@@ -27,7 +37,9 @@ f=SynthLab(\sigma,{
 } );
 
 )
-q StormPattern(f)
+q = StormPattern(f)
+q.track.set(\freq,Pseq([49.midicps,48.midicps,43.midicps],inf))
+q.track.set(\dur,10)
 
 (
 

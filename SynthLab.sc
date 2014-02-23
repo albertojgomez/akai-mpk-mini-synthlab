@@ -77,11 +77,12 @@ SynthLab  {
 					});
 				});
 				this.setActivePanel();
+				StormServer.sync;
+				sequencer = StormPattern(this);
 			}.fork;
 			//bind MIDI stuff
 			notematrix = ();
 			StormServer.connectMidi(this);
-			sequencer = StormPattern(this);
 		});//END OF CODE RUN whith doWhenBooted
 
 		^this;
@@ -117,7 +118,8 @@ SynthLab  {
 		);
 
 		{
-			var view,s = 0.8, tempPanel;
+			var view,s, tempPanel;
+			s = StormServer.guiSize;
 			if (index % 8 == 0,{
 				tempPanel = View(gui,Rect(60*s*4*panels.size ,0,60*s*4,60*s*2));
 				panels = panels.add(tempPanel);
