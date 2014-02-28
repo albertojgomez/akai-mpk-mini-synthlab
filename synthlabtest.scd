@@ -32,7 +32,7 @@ a = l.getParamsArray[17]
 f=SynthLab(\sigma,{
 	|freq=300|
 	a = PMOsc.ar(freq, VarSaw.kr(freq,0.5).range(freq*0.5,freq*1.5), Pulse.ar(freq*1.01), 0, 1).distort;
-	GVerb.ar(a,1,1,0.01,0.0,6);
+	GVerb.ar(a,1,5,0.01,0.0,6);
 
 } );
 

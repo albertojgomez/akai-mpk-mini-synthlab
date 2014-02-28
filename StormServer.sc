@@ -24,7 +24,8 @@ StormServer  {
 			//s.options.outDevice="Soundflower (64ch)";
 			//s.options.sampleRate=44100;
 			//s.options.numOutputBusChannels = 64;
-			s.options.outDevice="Built-in Output";
+			//s.options.outDevice="Built-in Output";
+			s.options.outDevice = "Lexicon Alpha In/Out";
 			s.options.sampleRate=48000;
 
 			s.bootSync;
