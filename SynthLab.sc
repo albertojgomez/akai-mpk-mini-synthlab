@@ -1,89 +1,77 @@
 SynthLab  {
-	var <>sdef,<>controlEvent,<>notematrix,<>gui,<>buses,<>midiChannel,<>midiCCSelectChannel,seed,<>knobs,
-	    <>panels,mainWindow,<>activePanel,<>name,<>sequencer;
+	var <>sdef,<>controlEvent,<>notematrix,
+		<>buses,<>name;
+
 	*new {
-		|nameparam,graphFunc|
-		^super.new.init(nameparam,graphFunc);
+		|synthName,graphFunc|
+		^super.new.init(synthName,graphFunc);
     }
 
 	init{
-		|nameparam,graphFunc|
-		name = nameparam;
-		activePanel = 0;
-		//init server
-		StormServer.singleton;
-		Server.default.doWhenBooted({
-			//SET MIDI DEVICE
-			midiChannel = StormServer.getMidiChannel;
-			midiCCSelectChannel = StormServer.getMidiChannel;
-			controlEvent = ();
-			seed = rrand(0, 100);
-			buses = () ;
-			knobs = Array.new(128) ;
-			panels = Array.new(16) ;
-			gui = StormServer.getGUI;
+		|synthName, graphFunc|
+		name = synthName;
+		controlEvent = ();
+		buses = () ;
+		//wrap in routine so that we can sync with server and get controls
+		{
+			var controlIndex = 0,
+			exclude = [\freq , \gate];
+			//do synth def
+			sdef = SynthDef( name , {
+				| gate = 1,
+				env_attack = 0.5,
+				env_decay  = 0.5,
+				env_sustain = 1,
+				env_release = 1,
+				filter_attack = 0.5,
+				filter_decay  = 0.5, filter_sustain = 1,
+				filter_release  = 1,
+				filter_cutoff=10000, filter_reso=3 ,vol = 1|
+				var signal,env,amp,fenv,filter;
+				//amp env
+				env=Env.adsr(
+					attackTime:env_attack,
+					decayTime:env_decay,
+					sustainLevel:env_sustain,
+					releaseTime:env_release );
+				amp=EnvGen.kr(env, gate);
+				//filter env
+				fenv=Env.adsr(
+					attackTime:filter_attack,
+					decayTime:filter_decay,
+					sustainLevel:filter_sustain,
+					releaseTime:filter_release );
+				filter=EnvGen.kr(fenv,gate:gate).exprange(50,filter_cutoff);
 
-			//wrap in routine so that we can sync with server and get controls
-			{
-				var controlIndex=0,
-				exclude = [\freq , \gate];
-				//do synth def
-				sdef = SynthDef( name , {
-					| gate = 1,
-					env_attack = 0.5,
-					env_decay  = 0.5,
-					env_sustain = 1,
-					env_release = 1,
-					filter_attack = 0.5,
-					filter_decay  = 0.5, filter_sustain = 1,
-					filter_release  = 1,
-					filter_cutoff=10000, filter_reso=3 ,vol = 1|
-					var signal,env,amp,fenv,filter;
-					//amp env
-					env=Env.adsr(
-						attackTime:env_attack,
-						decayTime:env_decay,
-						sustainLevel:env_sustain,
-						releaseTime:env_release );
-					amp=EnvGen.kr(env, gate);
-					//filter env
-					fenv=Env.adsr(
-						attackTime:filter_attack,
-						decayTime:filter_decay,
-						sustainLevel:filter_sustain,
-						releaseTime:filter_release );
-					filter=EnvGen.kr(fenv,gate:gate).exprange(50,filter_cutoff);
+				signal = SynthDef.wrap(graphFunc);
 
-					signal = SynthDef.wrap(graphFunc);
-
-					signal = MoogFF.ar( signal,filter,filter_reso,0) ;
-					//ATTENTION
-					//sometimes a note off will got lost and a synth will get stuck
-					//cut it anyway after 30 secs
-					Line.kr(0,1,30,doneAction:2);
-					signal = signal * amp * vol;
-					Out.ar( [0,1]  , signal );
-					DetectSilence.ar(signal,doneAction:2);
-				} ).add;
-				StormServer.sync;
-				SynthDescLib.global.synthDescs.at(name).controls.do({
-					|control|
-					if ( exclude.indexOf( control.name ).isNil ,{
-						controlEvent[ control.name ]=this.makecSpec(control,controlIndex);
-						buses [ control.name ] = Bus.control.set(
-							controlEvent[ control.name ].default
-						);
-						controlIndex = controlIndex+1;
-					});
+				signal = MoogFF.ar( signal,filter,filter_reso,0) ;
+				//ATTENTION
+				//sometimes a note off will got lost and a synth will get stuck
+				//cut it anyway after 30 secs
+				Line.kr(0,1,30,doneAction:2);
+				signal = signal * amp * vol;
+				Out.ar( [0,1]  , signal );
+				DetectSilence.ar(signal,doneAction:2);
+			} ).add;
+			StormServer.sync;
+			SynthDescLib.global.synthDescs.at(name).controls.do({
+				|control|
+				if ( exclude.indexOf( control.name ).isNil ,{
+					controlEvent[ control.name ]=this.makecSpec(control,controlIndex);
+					buses [ control.name ] = Bus.control.set(
+						controlEvent[ control.name ].default
+					);
+					controlIndex = controlIndex+1;
 				});
-				this.setActivePanel();
-				StormServer.sync;
-				sequencer = StormPattern(this);
-			}.fork;
+			});
+			this.setActivePanel();
+			StormServer.sync;
+			sequencer = StormPattern(this);
+		}.fork;
 			//bind MIDI stuff
 			notematrix = ();
 			StormServer.connectMidi(this);
-		});//END OF CODE RUN whith doWhenBooted
 
 		^this;
 	}
