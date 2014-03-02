@@ -29,15 +29,23 @@ StormServer  {
 	*s{
 		if(~serverSingleton.isNil,{~serverSingleton = StormServer()});
 		{
-			~serverSingleton.s.sync
+			~serverSingleton.scServer.sync
 		}.fork;
 		^~serverSingleton;
 	}
 
 	*sync{
 		{
-		StormServer.singleton.s.sync;
+		StormServer.s.scServer.sync;
 		}.fork;
+	}
+
+	*getStormGUI{
+		^StormServer.s.gui;
+	}
+
+	*getStormMidi{
+		^StormServer.s.midi;
 	}
 
 }

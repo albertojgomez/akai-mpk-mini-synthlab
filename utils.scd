@@ -37,11 +37,12 @@ SynthDef("snare", {
 }).add;
 )
 MIDIIn.connectAll;
-MIDIFunc.noteOn({
+x = MIDIFunc.noteOn({
 		arg ...args;
 		var note,params;
 	Synth("snare");
-		},chan:4);
+		});
+x.free
 MIDIFunc.noteOn({
 		arg ...args;
 		var note,params;

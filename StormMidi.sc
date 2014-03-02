@@ -1,5 +1,5 @@
 StormMidi  {
-	var <>midiInterface, <>midiOut, <>midiIn,<>instruments, <>connectTo;
+	var <>midiInterface, <>midiOut, <>midiIn, <>connectTo,<>midiInstruments;
 	*new {
 		^super.new.init;
     }
@@ -11,52 +11,101 @@ StormMidi  {
 		midiIn = MIDIIn.findPort("MPK mini", "MPK mini").uid;
 		connectTo = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
 		midiOut.latency = 0;
-		instruments = Array.new(4);
+		midiInstruments = ();
 		^this
 	}
 
-	patch {
-		|synthlab|
-		var currentIndex, inputCCchannel,inputSelectorchannel,outputchannel,pointer,
-		midiout,inputDevice,outputDevice;
-		currentIndex = instruments.size;
-		inputSelectorchannel = currentIndex * 2 + 1;
-		inputCCchannel = currentIndex * 2;
-		outputchannel = currentIndex * 2;
-		pointer=0;
-		instruments.add(synthlab);
-		inputDevice =  midiIn;
-		outputDevice = midiOut;
+	connectSynth {
+		|stormSynth|
+		var currentIndex, inputCCchannel,inputSelectorchannel,
+		    outputchannel,pointer,midiout,responder;
+		if (midiInstruments[stormSynth.name].isNil.not,
+		//existed
+		{
+			this.disconnectMidi(stormSynth);
+			currentIndex = midiInstruments[stormSynth.name][\index];
+			inputSelectorchannel = currentIndex * 2 + 1;
+			inputCCchannel = currentIndex * 2;
+			outputchannel = currentIndex * 2;
+		},
+		//did not exist
+		{
+			currentIndex = midiInstruments.size;
+			midiInstruments.[stormSynth.name] = (
+				\stormsynth:stormSynth,
+				\midiResponders : List.new(),
+				\index : currentIndex,
+				\notematrix : ()
+			);
+			inputSelectorchannel = currentIndex * 2 + 1;
+			inputCCchannel = currentIndex * 2;
+			outputchannel = currentIndex * 2;
+			pointer=0;
+			MIDIFunc.noteOn({
+				|velocity,note|
+				pointer = note;
+			},chan:inputSelectorchannel,srcID:midiIn);
+			MIDIFunc.cc({
+				|value,ccNumber|
+				var  ccId;
+				ccId = (pointer*8) + ccNumber;
+				midiOut.control(outputchannel,ccId,value)
+			},chan:inputCCchannel,srcID:midiIn);
+			//Bypass noteon and  noteoff
+			MIDIFunc.noteOn({
+				|velocity,note|
+				midiOut.noteOn(inputCCchannel, note: note, veloc: velocity)
+			},chan:inputCCchannel,srcID:midiIn);
+			MIDIFunc.noteOff({
+				|velocity,note|
+				midiOut.noteOff(inputCCchannel, note: note, veloc: velocity)
+			},chan:inputCCchannel,srcID:midiIn);
 
-		MIDIFunc.noteOn({
-			|velocity,note|
-			pointer = note;
-		},chan:inputSelectorchannel,srcID:inputDevice);
+		});
 
-		MIDIFunc.cc({
+		//Knobs
+		responder = MIDIFunc.cc({
 			|value,ccNumber|
-			var  ccId;
-			ccId = (pointer*8) + ccNumber;
-			outputDevice.control(outputchannel,ccId,value)
-		},chan:inputCCchannel,srcID:inputDevice);
-
-		//Bypass noteon and  noteoff
-		MIDIFunc.noteOn({
-			|velocity,note|
-			outputDevice.noteOn(inputCCchannel, note: note, veloc: velocity)
-		},chan:inputCCchannel,srcID:inputDevice);
-
-		MIDIFunc.noteOff({
-			|velocity,note|
-			outputDevice.noteOff(inputCCchannel, note: note, veloc: velocity)
-		},chan:inputCCchannel,srcID:inputDevice);
-
+			{
+				var knobs;
+				knobs = StormServer.getStormGUI.instrumentGUIs[stormSynth.name][\knobs];
+				//-1 cos the ccs start at 1
+				if (knobs.at(ccNumber - 1).notNil,{
+					knobs.at(ccNumber - 1).valueAction_( value / 127);
+				});
+			}.defer;
+		},chan:outputchannel,srcID:connectTo);
+		midiInstruments[stormSynth.name][\midiResponders].add(responder);
+		//notes
+		responder = MIDIFunc.noteOn({
+			arg ...args;
+			var note,params;
+			note = args[1] ;
+			params = stormSynth.getParamsArray();
+			params.add(\freq);
+			params.add(note.midicps);
+			midiInstruments[stormSynth.name][\notematrix][ note ] = Synth(stormSynth.name,params);
+		},chan:inputCCchannel,srcID:connectTo);
+		midiInstruments[stormSynth.name][\midiResponders].add(responder);
+		responder = MIDIFunc.noteOff({
+			arg ...args;
+			var note;
+			note = args[1] ;
+			midiInstruments[stormSynth.name][\notematrix][ note ].release;
+		},chan:inputCCchannel,srcID:connectTo);
+		midiInstruments[stormSynth.name][\midiResponders].add(responder);
 	}
 
-
-
-
+	disconnectMidi{
+		|stormSynth|
+		midiInstruments[stormSynth.name][\midiResponders].do({
+			|midiFunc| midiFunc.free;
+		});
+		midiInstruments[stormSynth.name][\midiResponders] = List.new();
+		midiInstruments[stormSynth.name][\notematrix].do({|note|
+			if(note.isNil.not,{note.release});
+		});
+		midiInstruments[stormSynth.name][\notematrix] = ();
+	}
 }
 
-/*
-Array.new(4).add(1)
