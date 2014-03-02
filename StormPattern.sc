@@ -12,6 +12,7 @@ StormPattern  {
 		var params,key = false;
 		synth = synthlab;
 		track = StormServer.getSequencerTrack();
+		track.postln;
 		params = synth.getParamsArray;
 		params.do({
 			|value|
@@ -49,9 +50,6 @@ StormPattern  {
 		});
 		pointer = (noterange/2).floor;
 		pattern = Array.new(length);
-		noteArray.postln;
-
-
 		length.do({
 			|step|
 				var note;
@@ -89,7 +87,6 @@ StormPattern  {
 			});
 			pattern.add(note);
 		});
-		pattern.postln;
 		^pattern;
 	}
 

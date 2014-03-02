@@ -1,6 +1,6 @@
 StormServer  {
 	var <>variablev,<>midiCounter,<s,<midiDevice,
-	<>window, <>sequencerTracks,<>clock,<>size;
+	<>window, <>sequencerTracks,<>clock,<>size,<>midi;
 
 	*singleton{
 		if(~single.isNil,{~single = StormServer()});
@@ -14,22 +14,23 @@ StormServer  {
 
 	init{
 		size = 0.7;
-		MIDIIn.connectAll;
-		midiDevice = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
-		//midiDevice = MIDIIn.findPort("MPK mini", "MPK mini").uid;
+		~seqCounter = 0;
 		{
+			/****  init sc server   *****/
 			s = Server.default;
 			s.options.memSize = 2.pow(20);
-
 			//s.options.outDevice="Soundflower (64ch)";
 			//s.options.sampleRate=44100;
 			//s.options.numOutputBusChannels = 64;
 			//s.options.outDevice="Built-in Output";
 			s.options.outDevice = "Lexicon Alpha In/Out";
 			s.options.sampleRate=48000;
-
 			s.bootSync;
 			s.sync;
+			/****  init midi   *****/
+			midi = StormMidi();
+			midiDevice = midi.connectTo;
+			/****  init sequencers   *****/
 			TempoClock.default.tempo = 135*4/60;
 			clock = TempoClock.default;
 			sequencerTracks = Array.new(4);
@@ -37,7 +38,6 @@ StormServer  {
 				|i|
 				sequencerTracks.add(PbindProxy.new.set(\freq,\rest));
 			});
-			~seqCounter = 0;
 			clock.schedAbs(clock.nextTimeOnGrid(64), { Ppar(sequencerTracks).play(quant:4) });
 		}.fork;
 		midiCounter = 0;
@@ -92,13 +92,14 @@ StormServer  {
 
 	*connectMidi{
 		|synthlab|
-		var name = synthlab.name,midiChannel = synthlab.midiChannel,notematrix = synthlab.notematrix,
+		var name = synthlab.name,midiChannel = synthlab.midiChannel,
+			notematrix = synthlab.notematrix,
 		activePanel = synthlab.activePanel,
 		midiCCSelectChannel = synthlab.midiCCSelectChannel,
 
 		panels = synthlab.panels,
 		knobs = synthlab.knobs;
-		//midiChannel = synthlab.activePanel,
+		StormServer.getMidi.patch(synthlab);
 
 		//Notes
 		MIDIFunc.noteOn({
@@ -151,6 +152,10 @@ StormServer  {
 
 	*guiSize{
 		^StormServer.singleton.size;
+	}
+
+	*getMidi{
+		^StormServer.singleton.midi;
 	}
 
 

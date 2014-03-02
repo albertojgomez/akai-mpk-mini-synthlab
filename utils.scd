@@ -56,14 +56,12 @@ ServerOptions.outDevices
 ServerOptions.devices
 Server.default.options.outDevice
 MIDIFunc.trace
+StormServer.singleton.midiDevice
 
 MIDIClient.sources[0].uid
-
-
-MIDIClient.sources[0].uid
-
+Server.default.doWhenBooted({'s'.post})
 Scale.choose.degrees+1500
-			TempoClock.default.tempo = 115*4/60;
+TempoClock.default.tempo = 115*4/60;
 
 { LPF.ar( Ringz.ar( Impulse.ar(1), 60, 0.5 ), 500 ) * 0.25 }.play;
 a = {
