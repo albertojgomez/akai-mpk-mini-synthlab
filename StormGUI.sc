@@ -44,7 +44,9 @@ StormGUI {
 				instrumentGUIs[stormSynth.name] = (
 						\container : instrumentContainer,
 						\guis : List.new(),
-						\knobs : List.new(),
+						//the knob list has the same elements but indexed
+						\knobsList : List.new(),
+						\knobs : (),
 						\panels : Array.fill(16,{
 							|panelIndex|
 							var panel;
@@ -80,7 +82,8 @@ StormGUI {
 					par.default = val ;
 					stormSynth.buses[ control.units ].set(val)
 				};
-				instrumentGUIs[stormSynth.name][\knobs].add(knob);
+				instrumentGUIs[stormSynth.name][\knobs][key] = knob;
+				instrumentGUIs[stormSynth.name][\knobsList].add(knob);
 				instrumentGUIs[stormSynth.name][\guis].add(knobContainer);
 			});
 
@@ -98,7 +101,8 @@ StormGUI {
 			|view| {view.remove}.defer;
 		});
 		instrumentGUIs[stormSynth.name][\guis] = List.new();
-		instrumentGUIs[stormSynth.name][\knobs] = List.new();
+		instrumentGUIs[stormSynth.name][\knobs] = ();
+		instrumentGUIs[stormSynth.name][\knobsList] = List.new();
 		instrumentGUIs[stormSynth.name].panels.do({|panel| panel.decorator.reset });
 	}
 }

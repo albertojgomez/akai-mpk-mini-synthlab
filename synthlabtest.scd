@@ -1,5 +1,6 @@
 StormServer.initSession("/Users/Alberto/Desktop")
 StormServer.saveSession
+StormServer.s
 (
 
 l=StormSynth(\PWM,{
@@ -12,9 +13,10 @@ l=StormSynth(\PWM,{
 });
 
 )
+a = Synth(\PWM)
+a.release
 
-
-
+StormServer.s.gui.instrumentGUIs[\PWM][\knobs]
 
 
 

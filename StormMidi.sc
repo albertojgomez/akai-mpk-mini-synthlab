@@ -76,7 +76,7 @@ StormMidi  {
 			|value,ccNumber|
 			{
 				var knobs;
-				knobs = StormServer.getStormGUI.instrumentGUIs[stormSynth.name][\knobs];
+				knobs = StormServer.getStormGUI.instrumentGUIs[stormSynth.name][\knobsList];
 				//-1 cos the ccs start at 1
 				if (knobs.at(ccNumber - 1).notNil,{
 					knobs.at(ccNumber - 1).valueAction_( value / 127);

@@ -42,6 +42,14 @@ StormServer  {
 				|stormsynth|
 				Server.default.doWhenBooted({
 					StormSynth(stormsynth[\name],stormsynth[\graphFunc]);
+					StormServer.s.scServer.sync;
+					stormsynth[\params].keys.do({
+						|paramKey|
+						{
+							StormServer.s.gui.instrumentGUIs[stormsynth[\name]][\knobs][paramKey]
+							.valueAction_(stormsynth[\params][paramKey])
+						}.defer;
+					});
 				});
 			});
 		});
@@ -89,21 +97,13 @@ StormServer  {
 			);
 			stormsynth.controlEvent.keys.do({
 				|paramKey|
-				stormsynth.buses[paramKey].get({
-					|busVal|
-					synthArchive[\params][paramKey] = busVal;
-					//finished creating archive object
-					if (synthArchive[\params].size == stormsynth.controlEvent.keys.size){
-						allSynths.add(synthArchive);
-						if (allSynths.size == StormServer.s.instruments.size){
-							Archive.global.put(\StormSession,allSynths);
-							Archive.write;
-						}
-					}
-				});
-
+				synthArchive[\params][paramKey] =
+				StormServer.s.gui.instrumentGUIs[stormsynth.name][\knobs][paramKey].value;
 			});
-		})
+			allSynths.add(synthArchive);
+		});
+		Archive.global.put(\StormSession,allSynths);
+		Archive.write;
 	}
 
 }
