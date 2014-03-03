@@ -1,5 +1,5 @@
-StormServer.s.instruments[\PWM].graphFunction.asCompileString
-
+StormServer.initSession("/Users/Alberto/Desktop")
+StormServer.saveSession
 (
 
 l=StormSynth(\PWM,{
@@ -15,26 +15,7 @@ l=StormSynth(\PWM,{
 
 
 
-l.controlEvent.keys.asArray
-l.getParamsArray
-w=Synth(\PWM,[\freq,150]);
 
-
-w.set(\gate,0)
-w.get(\gate)
-w.node
-
-a =View.new(Window.new('LEL',1000@800),1000@200).front
-a.decorat
-MIDIFunc.trace
-
-File.getcwd;
-Platform.userAppSupportDir
-Platform.classLibraryDir
-Platform.userExtensionDir
-Platform.platformDir
-Archive
-l.graphFunction.asCompileString.compile
 
 
 /*******SYNTHS******/

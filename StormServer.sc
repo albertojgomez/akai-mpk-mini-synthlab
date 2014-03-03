@@ -1,12 +1,12 @@
 StormServer  {
-	var <>scServer,<>midi,<>gui, <>instruments,<>presetsFolder;
+	var <>scServer,<>midi,<>gui, <>instruments,<>presetsFolder,<>sessionFolder;
 
 	*new {
 		^super.new.init;
     }
 
 	init{
-		instruments = ();
+		instruments = List.new;
 		presetsFolder = Platform.userExtensionDir ++ '/';
 		{
 			/****  init sc server   *****/
@@ -24,6 +24,27 @@ StormServer  {
 			});
 		}.fork;
 		^this;
+	}
+
+	*initSession {
+		|folder = nil|
+		if (folder.isNil,{
+			StormServer.s.sessionFolder = Platform.userAppSupportDir;
+		},{
+			StormServer.s.sessionFolder = folder;
+		});
+		Archive.archiveDir = folder;
+		if (File.exists(folder ++ '/archive.sctxar'),{
+			var session;
+			Archive.read;
+			session = Archive.global.at(\StormSession);
+			session.do({
+				|stormsynth|
+				Server.default.doWhenBooted({
+					StormSynth(stormsynth[\name],stormsynth[\graphFunc]);
+				});
+			});
+		});
 	}
 
 	/* Singleton pattern*/
@@ -51,7 +72,38 @@ StormServer  {
 
 	*addInstrument{
 		|stormsynth|
-		^StormServer.s.instruments[stormsynth.name] = stormsynth;
+		^StormServer.s.instruments.add(stormsynth);
+
+	}
+
+	//Getting bus value is an async action, so we have to do it in a funny way
+	*saveSession{
+		var allSynths = List.new;
+		StormServer.s.instruments.do({
+			|stormsynth|
+			var synthArchive;
+			synthArchive = (
+				\name : stormsynth.name,
+				\graphFunc : stormsynth.graphFunction,
+				\params : ()
+			);
+			stormsynth.controlEvent.keys.do({
+				|paramKey|
+				stormsynth.buses[paramKey].get({
+					|busVal|
+					synthArchive[\params][paramKey] = busVal;
+					//finished creating archive object
+					if (synthArchive[\params].size == stormsynth.controlEvent.keys.size){
+						allSynths.add(synthArchive);
+						if (allSynths.size == StormServer.s.instruments.size){
+							Archive.global.put(\StormSession,allSynths);
+							Archive.write;
+						}
+					}
+				});
+
+			});
+		})
 	}
 
 }

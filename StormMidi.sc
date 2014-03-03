@@ -47,10 +47,12 @@ StormMidi  {
 			inputCCchannel = currentIndex * 2;
 			outputchannel = currentIndex * 2;
 			pointer=0;
+			//cc group selector
 			MIDIFunc.noteOn({
 				|velocity,note|
 				pointer = note;
 			},chan:inputSelectorchannel,srcID:midiIn);
+			//cc multiplex
 			MIDIFunc.cc({
 				|value,ccNumber|
 				var  ccId;
