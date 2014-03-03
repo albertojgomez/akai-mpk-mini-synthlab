@@ -3,12 +3,18 @@ StormMidi  {
 	*new {
 		^super.new.init;
     }
-
 	init{
+		var inDevice;
 		MIDIClient.init;
 		MIDIIn.connectAll;
 		midiOut = MIDIOut.newByName("IAC Driver", "Bus 1");
-		midiIn = MIDIIn.findPort("MPK mini", "MPK mini").uid;
+		inDevice = MIDIIn.findPort("MPK mini", "MPK mini");
+		if (inDevice.isNil,{
+			midiIn = 0;
+		},{
+			midiIn = MIDIIn.findPort("MPK mini", "MPK mini").uid;
+		});
+
 		connectTo = MIDIIn.findPort("IAC Driver", "Bus 1").uid;
 		midiOut.latency = 0;
 		midiInstruments = ();

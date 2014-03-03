@@ -1,6 +1,6 @@
 StormSynth  {
 	var <>sdef,<>controlEvent,
-		<>buses,<>name,<>paramNames;
+		<>buses,<>name,<>paramNames,<>graphFunction;
 
 	*new {
 		|synthName,graphFunc|
@@ -10,6 +10,7 @@ StormSynth  {
 	init{
 		|synthName, graphFunc|
 		name = synthName;
+		graphFunction = graphFunc;
 		controlEvent = ();
 		buses = () ;
 		paramNames = List.new();
@@ -58,6 +59,7 @@ StormSynth  {
 			StormServer.sync;
 			StormServer.getStormGUI.addSynth(this);
 			StormServer.getStormMidi.connectSynth(this);
+			StormServer.addInstrument(this);
 		}.fork;
 
 		^this;

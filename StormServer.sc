@@ -1,5 +1,5 @@
 StormServer  {
-	var <>scServer,<>midi,<>gui, <>instruments;
+	var <>scServer,<>midi,<>gui, <>instruments,<>presetsFolder;
 
 	*new {
 		^super.new.init;
@@ -7,6 +7,7 @@ StormServer  {
 
 	init{
 		instruments = ();
+		presetsFolder = Platform.userExtensionDir ++ '/';
 		{
 			/****  init sc server   *****/
 			scServer = Server.default;
@@ -46,6 +47,11 @@ StormServer  {
 
 	*getStormMidi{
 		^StormServer.s.midi;
+	}
+
+	*addInstrument{
+		|stormsynth|
+		^StormServer.s.instruments[stormsynth.name] = stormsynth;
 	}
 
 }
