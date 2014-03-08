@@ -2,7 +2,7 @@ TODO
 
 
 drumlab
-presets saving in sytnhlab
+keep parameters when redefining synthlab
 
 
 

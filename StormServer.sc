@@ -1,5 +1,5 @@
 StormServer  {
-	var <>scServer,<>midi,<>gui, <>instruments,<>presetsFolder,<>sessionFolder;
+	var <>scServer,<>midi,<>gui, <>instruments;
 
 	*new {
 		^super.new.init;
@@ -7,7 +7,6 @@ StormServer  {
 
 	init{
 		instruments = List.new;
-		presetsFolder = Platform.userExtensionDir ++ '/';
 		{
 			/****  init sc server   *****/
 			scServer = Server.default;
@@ -26,33 +25,55 @@ StormServer  {
 		^this;
 	}
 
-	*initSession {
-		|folder = nil|
-		if (folder.isNil,{
-			StormServer.s.sessionFolder = Platform.userAppSupportDir;
-		},{
-			StormServer.s.sessionFolder = folder;
+	*loadSession {
+		|sessionFile = nil|
+		var session;
+		StormServer.s;
+		if(sessionFile.isNil || File.type(sessionFile) != \regular,
+		{
+			"Error, no session file provided".postln;
+			^nil;
 		});
-		Archive.archiveDir = folder;
-		if (File.exists(folder ++ '/archive.sctxar'),{
-			var session;
-			Archive.read;
-			session = Archive.global.at(\StormSession);
-			session.do({
-				|stormsynth|
-				Server.default.doWhenBooted({
-					StormSynth(stormsynth[\name],stormsynth[\graphFunc]);
-					StormServer.s.scServer.sync;
-					stormsynth[\params].keys.do({
-						|paramKey|
-						{
-							StormServer.s.gui.instrumentGUIs[stormsynth[\name]][\knobs][paramKey]
-							.valueAction_(stormsynth[\params][paramKey])
-						}.defer;
-					});
+
+		Archive.read(sessionFile);
+		session = Archive.global.at(\StormSession);
+		session.do({
+			|stormsynth|
+			Server.default.doWhenBooted({
+				StormSynth(stormsynth[\name],stormsynth[\graphFunc]);
+				StormServer.s.scServer.sync;
+				stormsynth[\params].keys.do({
+					|paramKey|
+					{
+						StormServer.s.gui.instrumentGUIs[stormsynth[\name]][\knobs][paramKey]
+						.valueAction_(stormsynth[\params][paramKey])
+					}.defer;
 				});
 			});
 		});
+	}
+
+	//Getting bus value is an async action, so we have to do it in a funny way
+	*saveSession{
+		|sessionFile|
+		var allSynths = List.new;
+		StormServer.s.instruments.do({
+			|stormsynth|
+			var synthArchive;
+			synthArchive = (
+				\name : stormsynth.name,
+				\graphFunc : stormsynth.graphFunction,
+				\params : ()
+			);
+			stormsynth.controlEvent.keys.do({
+				|paramKey|
+				synthArchive[\params][paramKey] =
+				StormServer.s.gui.instrumentGUIs[stormsynth.name][\knobs][paramKey].value;
+			});
+			allSynths.add(synthArchive);
+		});
+		Archive.global.put(\StormSession,allSynths);
+		Archive.write(sessionFile);
 	}
 
 	/* Singleton pattern*/
@@ -82,28 +103,6 @@ StormServer  {
 		|stormsynth|
 		^StormServer.s.instruments.add(stormsynth);
 
-	}
-
-	//Getting bus value is an async action, so we have to do it in a funny way
-	*saveSession{
-		var allSynths = List.new;
-		StormServer.s.instruments.do({
-			|stormsynth|
-			var synthArchive;
-			synthArchive = (
-				\name : stormsynth.name,
-				\graphFunc : stormsynth.graphFunction,
-				\params : ()
-			);
-			stormsynth.controlEvent.keys.do({
-				|paramKey|
-				synthArchive[\params][paramKey] =
-				StormServer.s.gui.instrumentGUIs[stormsynth.name][\knobs][paramKey].value;
-			});
-			allSynths.add(synthArchive);
-		});
-		Archive.global.put(\StormSession,allSynths);
-		Archive.write;
 	}
 
 }
