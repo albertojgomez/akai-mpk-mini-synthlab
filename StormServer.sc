@@ -105,4 +105,15 @@ StormServer  {
 
 	}
 
+	*instrumentExists{
+		|name|
+		StormServer.s.instruments.do({
+			|i|
+			if (i.name == name){
+				^i;
+			};
+		});
+		^false;
+	}
+
 }

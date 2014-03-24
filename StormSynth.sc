@@ -9,11 +9,21 @@ StormSynth  {
 
 	init{
 		|synthName, graphFunc|
+		var prevKnobs = false;
 		name = synthName;
 		graphFunction = graphFunc;
 		controlEvent = ();
 		buses = () ;
 		paramNames = List.new();
+		if(StormServer.instrumentExists(synthName) != false){
+			//get controlevent
+			prevKnobs = ();
+			StormServer.getStormGUI.instrumentGUIs[synthName][\knobs].keys.do({
+				|i|
+				prevKnobs[i] = StormServer.getStormGUI.instrumentGUIs[synthName][\knobs][i].value;
+			});
+			StormServer.instrumentExists(synthName).destroy;
+		};
 		//wrap in routine so that we can sync with server and get controls
 		{
 			//do synth def
@@ -60,6 +70,18 @@ StormSynth  {
 			StormServer.getStormGUI.addSynth(this);
 			StormServer.getStormMidi.connectSynth(this);
 			StormServer.addInstrument(this);
+			//restore previous values if there are
+			if (prevKnobs != false){
+				StormServer.getStormGUI.instrumentGUIs[synthName][\knobs].keys.do({|i|
+					{
+						if (prevKnobs[i].isNil.not
+						&&
+						StormServer.getStormGUI.instrumentGUIs[synthName][\knobs][i].isNil.not){
+							StormServer.getStormGUI.instrumentGUIs[synthName][\knobs][i].valueAction_(prevKnobs[i]);
+						}
+					}.defer
+				});
+			}
 		}.fork;
 
 		^this;
@@ -114,6 +136,10 @@ StormSynth  {
 			{
 				^known[paramName]
 		    });
+	}
+
+	destroy{
+		//StormServer.getStormGUI.destroyGUI(this);
 	}
 
 }

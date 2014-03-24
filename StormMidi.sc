@@ -62,6 +62,7 @@ StormMidi  {
 			//Bypass noteon and  noteoff
 			MIDIFunc.noteOn({
 				|velocity,note|
+					"log".postln();
 				midiOut.noteOn(inputCCchannel, note: note, veloc: velocity)
 			},chan:inputCCchannel,srcID:midiIn);
 			MIDIFunc.noteOff({

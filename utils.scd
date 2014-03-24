@@ -1,10 +1,10 @@
 (
 SynthDef("bassdrum",{
 	|decay=0.5,vol = 1,sig|
-	var env=EnvGen.kr(Env.perc(0,releaseTime:decay,curve:-18),Impulse.kr(0)  , doneAction:2);
+	var env=EnvGen.kr(Env.perc(0,releaseTime:decay,curve:-18).exprange,Impulse.kr(0)  , doneAction:2);
 	sig = [
-		SinOsc.ar(env.range(20,60),mul:env*vol),
-		Saw.ar(env.range(20,60),mul:env*0.01)
+		SinOsc.ar(env.range(40,80),mul:env*vol),
+		Saw.ar(env.range(40,80),mul:env*0.01)
 	];
 	Out.ar([0,1],Mix(sig));
 
@@ -50,7 +50,7 @@ MIDIFunc.noteOn({
 		},chan:5);
 
 Synth("bassdrum",[\decay:0.5])
-Synth("snare",[\decaynoise,0.5])
+Synth("snare",[\decaynoise,0.2])
 
 
 ServerOptions.outDevices
