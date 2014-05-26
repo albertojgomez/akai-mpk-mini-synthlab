@@ -13,6 +13,7 @@ StormServer  {
 			scServer.options.memSize = 2.pow(20);
 			//check ServerOptions.outDevices to change this
 			scServer.options.outDevice = "Lexicon Alpha In/Out";
+			scServer.options.inDevice = "Lexicon Alpha In/Out";
 			scServer.options.sampleRate=48000;
 			scServer.boot;
 			scServer.doWhenBooted({
@@ -20,10 +21,27 @@ StormServer  {
 				midi = StormMidi();
 				/****  init GUI   *****/
 				gui = StormGUI();
+				this.initAudioIn();
 			});
 		}.fork;
 		^this;
 	}
+	initAudioIn{
+		SynthDef("help-AudioIn2",{ arg out=[0,1];
+		~rightIn = AudioIn.ar(1);
+		Out.ar(Compander.ar( out),
+				[~rightIn,~rightIn]*0.5
+			)
+		}).play;
+
+		SynthDef("help-AudioIn",{ arg out=[0,1];
+			~leftIn= AudioIn.ar(2);
+			Out.ar(out,
+			Splay.ar(GVerb.ar(~leftIn,70,6,mul:0.01)) + (~leftIn * 0.6)
+			)
+		}).play;
+	}
+
 
 	*loadSession {
 		|sessionFile = nil|
@@ -114,6 +132,14 @@ StormServer  {
 			};
 		});
 		^false;
+	}
+
+	*panic{
+		StormServer.s.midi.midiInstruments.do({
+			|instrument|
+			instrument[\notematrix].do({|node| node.set(\gate,0);node.release; "release".postln;})
+		});
+		Server.freeAll;
 	}
 
 }

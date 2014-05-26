@@ -62,7 +62,6 @@ StormMidi  {
 			//Bypass noteon and  noteoff
 			MIDIFunc.noteOn({
 				|velocity,note|
-					"log".postln();
 				midiOut.noteOn(inputCCchannel, note: note, veloc: velocity)
 			},chan:inputCCchannel,srcID:midiIn);
 			MIDIFunc.noteOff({
@@ -80,7 +79,10 @@ StormMidi  {
 				knobs = StormServer.getStormGUI.instrumentGUIs[stormSynth.name][\knobsList];
 				//-1 cos the ccs start at 1
 				if (knobs.at(ccNumber - 1).notNil,{
-					knobs.at(ccNumber - 1).valueAction_( value / 127);
+					var kval =  value,currVal = knobs.at(ccNumber - 1).value * 127;
+					if ((currVal - kval).abs < 5){
+						knobs.at(ccNumber - 1).valueAction_(kval / 127 );
+					}
 				});
 			}.defer;
 		},chan:outputchannel,srcID:connectTo);
