@@ -1,12 +1,38 @@
 StormServer.loadSession("/Users/Alberto/Documents/REAPER Media/lexicon/archive.sctxar")
 StormServer.saveSession("/Users/Alberto/Documents/REAPER Media/lexicon/archive.sctxar")
 StormServer.panic
+(
+l=StormServer.instrumentExists(\PWM);
+l.sequencer.noterange=8;
+l.sequencer.density=70;
+l.sequencer.length=16;
+l.sequencer.root = 40;
+l.sequencer.linearity=10;
+l.sequencer.chaos=50;
+l.sequencer.scale = Scale.choose.postln.degrees;
+l.sequencer.mutate;
+)
+
+(
+~bd=35 - 49;
+~sd = 35 - 48 ;
+~hh = 35 - 45;
+
+m = MIDIOut(2);
+	a = Pbind(
+	     \degree, Pseq([~bd, \rest, ~hh, \rest,~sd, \rest, ~hh, \rest], inf),
+	     \chan , 0);
+    StormServer.getClock.schedAbs(StormServer.getClock.nextTimeOnGrid(63.8), {
+	(a <> (type: \midi, midiout: m)).play(StormServer.getClock(), Event.default ,  Quant.new(timingOffset:1000));
+		});
 
 
+)
+StormServer.getClock.tempo=7
 
 
 StormServer.s.instruments[1].name
-StormServer.instrumentExists(\PWM)
+
 StormServer.getStormGUI.instrumentGUIs[\PWM][\knobs].keys.do({|i|
 	if (prevControlEvent[i].isNil.not){
 		StormServer.getStormGUI.instrumentGUIs[\PWM][\knobs][i].valueAction_(prevControlEvent[i].map)

@@ -1,6 +1,6 @@
 StormSynth  {
 	var <>sdef,<>controlEvent,
-		<>buses,<>name,<>paramNames,<>graphFunction;
+		<>buses,<>name,<>paramNames,<>graphFunction,<>sequencer;
 
 	*new {
 		|synthName,graphFunc|
@@ -81,7 +81,8 @@ StormSynth  {
 						}
 					}.defer
 				});
-			}
+			};
+			sequencer = StormPattern(this);
 		}.fork;
 
 		^this;

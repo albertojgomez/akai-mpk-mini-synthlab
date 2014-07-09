@@ -3,14 +3,14 @@ StormPattern  {
 	<>length,<>density,<>noterange,<>seed,<>linearity,<>root,<>chaos;
 
 	*new {
-		|synthlab|
-		^super.new.init(synthlab);
+		|ssynth|
+		^super.new.init(ssynth);
     }
 
 	init{
-		|synthlab|
+		|ssynth|
 		var params,key = false;
-		synth = synthlab;
+		synth = ssynth;
 		track = StormServer.getSequencerTrack();
 		track.postln;
 		params = synth.getParamsArray;

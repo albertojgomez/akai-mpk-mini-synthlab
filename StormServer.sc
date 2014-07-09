@@ -1,5 +1,13 @@
 StormServer  {
-	var <>scServer,<>midi,<>gui, <>instruments;
+	var <>scServer,<>midi,<>gui, <>instruments,<>clock, <>sequencerTracks;
+
+	*initClass{
+		//Class.initClassTree(GUI);
+		StartUp.add({
+			StormServer.s;
+		});
+
+	}
 
 	*new {
 		^super.new.init;
@@ -10,22 +18,39 @@ StormServer  {
 		{
 			/****  init sc server   *****/
 			scServer = Server.default;
-			scServer.options.memSize = 2.pow(20);
-			//check ServerOptions.outDevices to change this
-			scServer.options.outDevice = "Lexicon Alpha In/Out";
-			scServer.options.inDevice = "Lexicon Alpha In/Out";
-			scServer.options.sampleRate=48000;
+			this.setServerOptions();
 			scServer.boot;
 			scServer.doWhenBooted({
 				/****  init midi   *****/
 				midi = StormMidi();
 				/****  init GUI   *****/
 				gui = StormGUI();
+				/****  init audio in   *****/
 				this.initAudioIn();
+				/****  init sequencers   *****/
+				TempoClock.default.tempo = 135*4/60;
+				clock = TempoClock.default;
+				//16 drum tracks + 3 synths
+				sequencerTracks = Array.new(19);
+				19.do({
+					|i|
+					sequencerTracks.add(PbindProxy.new.set(\freq,\rest));
+				});
+				clock.schedAbs(clock.nextTimeOnGrid(64), { Ppar(sequencerTracks).play(quant:4) });
 			});
 		}.fork;
 		^this;
 	}
+
+	setServerOptions{
+		scServer.options.memSize = 2.pow(20);
+		//check ServerOptions.outDevices to change this
+
+		scServer.options.outDevice = "Lexicon Alpha In/Out";
+		scServer.options.inDevice = "Lexicon Alpha In/Out";
+		scServer.options.sampleRate=48000;
+	}
+
 	initAudioIn{
 		SynthDef("help-AudioIn2",{ arg out=[0,1];
 		~rightIn = AudioIn.ar(1);
@@ -35,10 +60,12 @@ StormServer  {
 		}).play;
 
 		SynthDef("help-AudioIn",{ arg out=[0,1];
-			~leftIn= AudioIn.ar(2);
+			~leftIn= AudioIn.ar(2) ;//+ DelayN.ar(LocalIn.ar(2), 0.3, 0.3);
+
 			Out.ar(out,
-			Splay.ar(GVerb.ar(~leftIn,70,6,mul:0.01)) + (~leftIn * 0.6)
-			)
+			Splay.ar(GVerb.ar(~leftIn,100,6,mul:0.01)) + (~leftIn * 0.6)
+			);
+			//LocalOut.ar(~leftIn.reverse * 0.1);
 		}).play;
 	}
 
@@ -98,6 +125,7 @@ StormServer  {
 	*s{
 		if(~serverSingleton.isNil,{~serverSingleton = StormServer()});
 		{
+			~seqCounter = 0;
 			~serverSingleton.scServer.sync
 		}.fork;
 		^~serverSingleton;
@@ -109,6 +137,10 @@ StormServer  {
 		}.fork;
 	}
 
+	*getClock{
+		^StormServer.s.clock;
+	}
+
 	*getStormGUI{
 		^StormServer.s.gui;
 	}
@@ -116,6 +148,14 @@ StormServer  {
 	*getStormMidi{
 		^StormServer.s.midi;
 	}
+
+	*getSequencerTrack{
+		var temp;
+		temp = ~seqCounter;
+		~seqCounter  = ~seqCounter+1;
+		^StormServer.s.sequencerTracks[temp];
+	}
+
 
 	*addInstrument{
 		|stormsynth|
