@@ -2,11 +2,9 @@ StormServer  {
 	var <>scServer,<>midi,<>gui, <>instruments,<>clock, <>sequencerTracks;
 
 	*initClass{
-		//Class.initClassTree(GUI);
 		StartUp.add({
 			StormServer.s;
 		});
-
 	}
 
 	*new {
@@ -44,29 +42,48 @@ StormServer  {
 
 	setServerOptions{
 		scServer.options.memSize = 2.pow(20);
-		//check ServerOptions.outDevices to change this
-
-		scServer.options.outDevice = "Lexicon Alpha In/Out";
-		scServer.options.inDevice = "Lexicon Alpha In/Out";
 		scServer.options.sampleRate=48000;
+		//check ServerOptions.outDevices to change this
+		if (ServerOptions.outDevices.includesEqual("Lexicon Alpha In/Out"),{
+			scServer.options.outDevice = "Lexicon Alpha In/Out";
+		}
+		,{
+			scServer.options.outDevice = "Built-in Output";
+		});
+		if (ServerOptions.inDevices.includesEqual("Lexicon Alpha In/Out"),{
+			scServer.options.inDevice = "Lexicon Alpha In/Out";
+		}
+		,{
+			scServer.options.inDevice = nil;
+		});
+
 	}
 
 	initAudioIn{
-		SynthDef("help-AudioIn2",{ arg out=[0,1];
-		~rightIn = AudioIn.ar(1);
-		Out.ar(Compander.ar( out),
-				[~rightIn,~rightIn]*0.5
-			)
-		}).play;
+		if (scServer.options.outDevice == "Lexicon Alpha In/Out",{
+			SynthDef("help-AudioIn2",{ arg out=[0,1];
+				~rightIn = AudioIn.ar(1);
+				Out.ar(Compander.ar( out),
+					[~rightIn,~rightIn]*0.5
+				)
+			}).play;
 
-		SynthDef("help-AudioIn",{ arg out=[0,1];
-			~leftIn= AudioIn.ar(2) ;//+ DelayN.ar(LocalIn.ar(2), 0.3, 0.3);
-
-			Out.ar(out,
-			Splay.ar(GVerb.ar(~leftIn,100,6,mul:0.01)) + (~leftIn * 0.6)
-			);
-			//LocalOut.ar(~leftIn.reverse * 0.1);
-		}).play;
+			SynthDef("help-AudioIn",{
+				arg out=[0,1];
+				var in  = AudioIn.ar(2);
+				in = Compander.ar(in,Amplitude.ar(in),0.001
+					slopeBelow: 100,
+					slopeAbove: 10,
+					clampTime: 0.1,
+					relaxTime: 0.1
+				);
+				~leftIn= in + DelayN.ar(LocalIn.ar(2), 0.3, 0.3);
+				Out.ar(out,
+					Splay.ar(GVerb.ar(~leftIn,100,6,mul:0.01)) + (~leftIn * 0.6)
+				);
+				LocalOut.ar(~leftIn.reverse * 0.1);
+			}).play;
+		});
 	}
 
 

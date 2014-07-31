@@ -14,16 +14,16 @@ l.sequencer.mutate;
 )
 
 (
-~bd=35 - 49;
-~sd = 35 - 48 ;
-~hh = 35 - 45;
-
+var parts = Array.fill(16,{|i| 35+i});
+TempoClock.default.tempo = 135*4/600;
 m = MIDIOut(2);
 	a = Pbind(
-	     \degree, Pseq([~bd, \rest, ~hh, \rest,~sd, \rest, ~hh, \rest], inf),
-	     \chan , 0);
-    StormServer.getClock.schedAbs(StormServer.getClock.nextTimeOnGrid(63.8), {
-	(a <> (type: \midi, midiout: m)).play(StormServer.getClock(), Event.default ,  Quant.new(timingOffset:1000));
+	     \midinote, Pseq(parts, inf),
+	     \chan , 0
+    ).trace;
+    StormServer.getClock.schedAbs(StormServer.getClock.nextTimeOnGrid(63.8),
+	    {
+		    (a <> (type: \midi, midiout: m)).play(StormServer.getClock(), Event.default ,                 Quant.new(timingOffset:1000));
 		});
 
 
