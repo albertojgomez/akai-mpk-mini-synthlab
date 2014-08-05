@@ -1,5 +1,12 @@
 StormMidi  {
 	var <>midiInterface, <>midiOut, <>midiIn, <>connectTo,<>midiInstruments;
+
+	*initialize{
+		//TODO change everything to static (only one stormmidi needed)
+		//heavy use of class var
+
+	}
+
 	*new {
 		^super.new.init;
     }
@@ -20,6 +27,8 @@ StormMidi  {
 		midiInstruments = ();
 		^this
 	}
+
+
 
 	connectSynth {
 		|stormSynth|

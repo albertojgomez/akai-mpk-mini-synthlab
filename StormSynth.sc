@@ -1,13 +1,20 @@
-StormSynth  {
-	var <>sdef,<>controlEvent,
-		<>buses,<>name,<>paramNames,<>graphFunction,<>sequencer;
+StormSynth : StormObject  {
+	classvar width = 60 , height = 60, <>synths;
+	var <>controlEvent, <>buses, <>name, <>paramNames, <>graphFunction, <>sequencer;
+
+	*initClass{
+		synths = ();
+	}
 
 	*new {
-		|synthName,graphFunc|
-		^super.new.init(synthName,graphFunc);
+		|graphFunc,synthName|
+		if (synthName.isNil){
+			synthName = "StormSynth_" ++ synths.size;
+		};
+		^super.new.initStormSynth(synthName,graphFunc);
     }
 
-	init{
+	initStormSynth{
 		|synthName, graphFunc|
 		var prevKnobs = false;
 		name = synthName;
@@ -27,7 +34,7 @@ StormSynth  {
 		//wrap in routine so that we can sync with server and get controls
 		{
 			//do synth def
-			sdef = SynthDef( name , {
+			SynthDef( name , {
 				| gate = 1, env_attack = 0.5, env_decay  = 0.5, env_sustain = 1, env_release = 1,
 				filter_attack = 0.5, filter_decay  = 0.5, filter_sustain = 1, filter_release  = 1,
 				filter_cutoff=10000, filter_reso=3 ,vol = 1|
@@ -52,18 +59,17 @@ StormSynth  {
 				Out.ar( [0,1]  , signal );
 				DetectSilence.ar(signal,doneAction:2);
 			} ).add;
-			StormServer.sync;
+
 			SynthDescLib.global.synthDescs.at(name).controls.do({
 				|control|
 				var exclude = [\freq , \gate];
-				if ( exclude.indexOf( control.name ).isNil ,{
+				if ( [\freq , \gate].includesEqual(control.name) ){
 					paramNames.add(control.name);
 					controlEvent[ control.name ] = this.makecSpec(control);
 					buses [ control.name ] = Bus.control.set(
 						controlEvent[ control.name ].default
 					);
-
-				});
+				};
 
 			});
 			StormServer.sync;
@@ -120,7 +126,7 @@ StormSynth  {
 	}
 
 	/* Returns warp, min and max of a parameter with a given name.Defaults to \lin,0,1 */
-	*paramTypes{
+	*getParamType{
 		|paramName|
 		var known = (
 			\freq : [\exp, 20, 20500],
@@ -129,14 +135,12 @@ StormSynth  {
 			\decay : [\lin, 0, 10] ,
 			\release : [\lin, 0.0001, 10]
 		);
-		if (known[paramName].isNil,
-			{
-				//zero in  some param make the whole thing go apeshit
-				^[\lin, 0.0001, 1];
-			},
-			{
-				^known[paramName]
-		    });
+		if (known[paramName].isNil){
+			//zero in  some param make the whole thing go apeshit
+			^[\lin, 0.0001, 1];
+		}{
+			^known[paramName]
+		};
 	}
 
 	destroy{
