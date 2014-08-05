@@ -1,5 +1,5 @@
 StormSynth : StormObject  {
-	classvar width = 60 , height = 60, <>synths;
+	classvar width = 640 , height = 125, <>synths;
 	var <>controlEvent, <>buses, <>name, <>paramNames, <>graphFunction, <>sequencer;
 
 	*initClass{
@@ -35,6 +35,7 @@ StormSynth : StormObject  {
 		{
 			//do synth def
 			SynthDef( name , {
+				/*DONT FORGET TO REMOVE ENVELOPES*/
 				| gate = 1, env_attack = 0.5, env_decay  = 0.5, env_sustain = 1, env_release = 1,
 				filter_attack = 0.5, filter_decay  = 0.5, filter_sustain = 1, filter_release  = 1,
 				filter_cutoff=10000, filter_reso=3 ,vol = 1|

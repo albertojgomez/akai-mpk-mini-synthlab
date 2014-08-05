@@ -1,23 +1,38 @@
 /* Only things a SC must know is the bus and it's name*/
+/* All controls ARE KNOBS*/
 StormControl : StormObject{
 	classvar width = 60 , height = 60, <>controls;
-	var <>name, <>bus;
+	var <>name, <>object;
+
 	*initClass{
 		controls = ();
 	}
 
 	*new {
-		|cName, cBus|
-		if (cName.isNil | cbus.cBus) {
-			Exception("StormControl:Control name or bus not provided");
+		|cName, cObject|
+		if (cName.isNil | cObject.isNil) {
+			Exception("StormControl:Control name or object not provided");
+		};
+		if (cObject.class.name == \Bus){
+			^super.new.initStormControlFromBus(cName, cObject);
+		};
+		if(/*cObject.class.name == \Pproxy or something...*/false){
+			^super.new.initStormControlPproxy(cName, cObject);
 		}
-		^super.new.initStormControl(cName, cBus);
+
     }
 
-	initStormSynth{
+	initStormControlFromBus{
 		|cName,cBus|
-		bus = cBus;
+		object = cBus;
 		name = cName;
+		^this;
+	}
+
+	initStormControlPproxy{
+		|cName, cPproxy|
+		/*TODO*/
+		^this;
 	}
 
 }

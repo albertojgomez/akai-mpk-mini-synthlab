@@ -16,7 +16,7 @@ StormObject{
 	}
 
 	doesNotUnderstand { arg selector...args;
-        (">>>>>>>>>>>>StormError:" ++ this.class++" does not understand method "++selector);
+        Exception(">>>>>>>>>>>>StormError:" ++ this.class++" does not understand "++selector).throw;
     }
 
 }
