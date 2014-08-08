@@ -1,41 +1,57 @@
 StormSynth : StormObject  {
-	classvar width = 640 , height = 125, <>synths;
-	var <>controlEvent, <>buses, <>name, <>paramNames, <>graphFunction, <>sequencer;
+	classvar width = 640 , height = 125, <>synths, <>group, <>allSequencers;
+	var <>controls, <>buses, <>name, <>graphFunction, <>noteMatrix, <>sequencer;
 
-	*initClass{
+	*initialize{
+		group = Group.new(StormServer.scServer,\addToTail);
+		//add enogh sequencers
+		allSequencers = List.new(20);
+		20.do({
+			|i|
+			allSequencers.add(PbindProxy.new.set(\freq,\rest).set(\group,group));
+		});
+		StormServer.clock.schedAbs(StormServer.clock.nextTimeOnGrid(64), {
+			Ppar(allSequencers).play(quant:4)
+		});
 		synths = ();
 	}
 
 	*new {
-		|graphFunc,synthName|
+		|graphFunc, synthName, filter|
 		if (synthName.isNil){
 			synthName = "StormSynth_" ++ synths.size;
 		};
-		^super.new.initStormSynth(synthName,graphFunc);
+		if (filter.isNil){
+			filter = MoogFF;
+		};
+		^super.new.initStormSynth(synthName, graphFunc, filter);
     }
 
 	initStormSynth{
-		|synthName, graphFunc|
-		var prevKnobs = false;
+		|synthName, graphFunc, filter|
+		var prevParameterValues, prevSynth;
 		name = synthName;
 		graphFunction = graphFunc;
-		controlEvent = ();
-		buses = () ;
-		paramNames = List.new();
-		if(StormServer.instrumentExists(synthName) != false){
-			//get controlevent
-			prevKnobs = ();
-			StormServer.getStormGUI.instrumentGUIs[synthName][\knobs].keys.do({
-				|i|
-				prevKnobs[i] = StormServer.getStormGUI.instrumentGUIs[synthName][\knobs][i].value;
+		buses = ();
+		noteMatrix = ();
+		//if synth already existd, backup parameters to restore later
+		prevSynth = synths[synthName];
+		if(prevSynth.isNil.not){
+			//get controls
+			prevParameterValues = ();
+			controls.forEach({
+				|control, name|
+				prevParameterValues[name] = control.getValue();
 			});
-			StormServer.instrumentExists(synthName).destroy;
+			prevSynth.destroy();
+		}{
+			sequencer = allSequencers.pop();
 		};
 		//wrap in routine so that we can sync with server and get controls
 		{
 			//do synth def
 			SynthDef( name , {
-				/*DONT FORGET TO REMOVE ENVELOPES*/
+
 				| gate = 1, env_attack = 0.5, env_decay  = 0.5, env_sustain = 1, env_release = 1,
 				filter_attack = 0.5, filter_decay  = 0.5, filter_sustain = 1, filter_release  = 1,
 				filter_cutoff=10000, filter_reso=3 ,vol = 1|
@@ -55,97 +71,75 @@ StormSynth : StormObject  {
 					releaseTime:filter_release );
 				filter=EnvGen.kr(fenv,gate:gate).exprange(50,filter_cutoff);
 				signal = SynthDef.wrap(graphFunc);
-				signal = MoogFF.ar( signal,filter,filter_reso,0) ;
+				signal = filter.ar( signal,filter,filter_reso);
 				signal = signal * amp * vol;
 				Out.ar( [0,1]  , signal );
 				DetectSilence.ar(signal,doneAction:2);
 			} ).add;
 
-			SynthDescLib.global.synthDescs.at(name).controls.do({
-				|control|
-				var exclude = [\freq , \gate];
-				if ( [\freq , \gate].includesEqual(control.name) ){
-					paramNames.add(control.name);
-					controlEvent[ control.name ] = this.makecSpec(control);
-					buses [ control.name ] = Bus.control.set(
-						controlEvent[ control.name ].default
-					);
-				};
+			this.createControls();
 
-			});
 			StormServer.sync;
-			StormServer.getStormGUI.addSynth(this);
-			StormServer.getStormMidi.connectSynth(this);
-			StormServer.addInstrument(this);
+
 			//restore previous values if there are
-			if (prevKnobs != false){
-				StormServer.getStormGUI.instrumentGUIs[synthName][\knobs].keys.do({|i|
-					{
-						if (prevKnobs[i].isNil.not
-						&&
-						StormServer.getStormGUI.instrumentGUIs[synthName][\knobs][i].isNil.not){
-							StormServer.getStormGUI.instrumentGUIs[synthName][\knobs][i].valueAction_(prevKnobs[i]);
-						}
-					}.defer
+			if (prevParameterValues.isNil.not){
+				prevParameterValues.forEach({
+					|value, key|
+					if (controls[key].isNil.not){
+						controls[key].setValue(value);
+					}
 				});
 			};
-			sequencer = StormPattern(this);
 		}.fork;
-
+		synths[name] = this;
 		^this;
 	}
-	/*Return argument pairs list to use with Synth()*/
-	getParamsArray{
-		var e = List[] ;
-		controlEvent.do({
-			|spec|
-			e.add( spec.units );
-			e.add( buses[ spec.units ].asMap );
+
+	createControls{
+		SynthDescLib.global.synthDescs[name].controls.do({
+			|control|
+			var exclude = [\freq , \gate];
+			if ( [\freq , \gate].includesEqual(control.name).not ){
+				buses[ control.name ] = Bus.control.set(
+					controls[ control.name ].default
+				);
+				sequencer.set(control.name, buses[ control.name ].asMap);
+				controls[control.name] = StormControl.new(control.name, buses[control.name], view);
+			};
 		});
-		^e;
-	}
-	/* Return ControlSpec to handle a given Synth parameter */
-	/* paramameters are usually group_name */
-	makecSpec{
-		|control|
-		var cspec, group, specData, nameParts, name;
-		nameParts = control.name.asString.split($_);
-		if (nameParts.size == 2 ,{
-			group = nameParts[0];
-			name = nameParts[1];
-		},{
-			name = control.name.asString;
-			group = 'randomString';
-		});
-		//Get control type (log, lin, range)
-		specData = StormSynth.paramTypes( name.asSymbol );
-		cspec = ControlSpec(
-			specData[1] ,  specData[2]  ,
-			specData[0] , 0 ,  control.defaultValue  ,control.name
-		);
-		^cspec;
 	}
 
-	/* Returns warp, min and max of a parameter with a given name.Defaults to \lin,0,1 */
-	*getParamType{
-		|paramName|
-		var known = (
-			\freq : [\exp, 20, 20500],
-			\cutoff : [\exp, 20, 20500],
-			\attack : [\lin, 0, 10] ,
-			\decay : [\lin, 0, 10] ,
-			\release : [\lin, 0.0001, 10]
-		);
-		if (known[paramName].isNil){
-			//zero in  some param make the whole thing go apeshit
-			^[\lin, 0.0001, 1];
-		}{
-			^known[paramName]
+	/*Return argument pairs list to use with Synth()*/
+	noteOn {
+		|midinote = 40|
+		var e;
+		if (noteMatrix[midinote].inNil){
+			e = List[] ;
+			controls.do({
+				|contr|
+				e.add( contr.name );
+				e.add( buses[ contr.name ].asMap );
+			});
+			e.add(\freq);
+			e.add(midinote.midicps);
+			^noteMatrix[midinote] = Synth(name,e);
+		};
+	}
+
+	noteOff {
+		|midinote = 40|
+		var e;
+		if (noteMatrix[midinote].inNil.not){
+			noteMatrix[midinote].release();
 		};
 	}
 
 	destroy{
-		//StormServer.getStormGUI.destroyGUI(this);
+		//TODO destroy buses!
+		buses.forEach({
+			|value, key|
+			value.free();
+		});
 	}
 
 }

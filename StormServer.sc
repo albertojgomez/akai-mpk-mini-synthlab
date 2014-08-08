@@ -8,13 +8,15 @@ StormServer {
 			StormServer.initAudio();
 			scServer.boot;
 			scServer.doWhenBooted({
+				/****  init clock   *****/
+				TempoClock.default.tempo = 135*4/60;
+				clock = TempoClock.default;
 				/****  init GUI   *****/
 				view = Window.new("⚡⚡⚡⚡._-5t0rmb0tn3t-_.⚡⚡⚡⚡", 1280@800).front;
 				/****  init midi   *****/
 				StormMidi.initialize();
-				/****  init clock   *****/
-				TempoClock.default.tempo = 135*4/60;
-				clock = TempoClock.default;
+				/* Init Synth resources*/
+				StormSynth.initialize();
 			});
 		});
 	}

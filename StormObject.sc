@@ -3,13 +3,19 @@ StormObject{
 	var <>view;
 
 	*new {
-		^super.new.initStormObject;
+		|parent, bgColor|
+		^super.new.initStormObject(parent, bgColor);
     }
 
 	initStormObject {
 		| parent = nil, bgColor = nil |
 		if (bgColor.isNil,{bgColor = Color.white});
 		if (parent.isNil,{parent = StormServer.view.front });
+		^this.makeGUI(parent);
+	}
+
+	makeGUI {
+		|parent|
 		view = View.new(parent,
 			Point(width,height)).background_(Color.white);
 		^this;
