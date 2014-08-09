@@ -21,9 +21,6 @@ StormSynth : StormObject  {
 		if (synthName.isNil){
 			synthName = "StormSynth_" ++ synths.size;
 		};
-		if (filter.isNil){
-			filter = MoogFF;
-		};
 		^super.new.initStormSynth(synthName, graphFunc, filter);
     }
 
@@ -33,6 +30,7 @@ StormSynth : StormObject  {
 		name = synthName;
 		graphFunction = graphFunc;
 		buses = ();
+		controls = ();
 		noteMatrix = ();
 		//if synth already existd, backup parameters to restore later
 		prevSynth = synths[synthName];
@@ -49,11 +47,14 @@ StormSynth : StormObject  {
 		};
 		//wrap in routine so that we can sync with server and get controls
 		{
+			if (filter.isNil){
+				filter = MoogFF;
+			};
 			//do synth def
 			SynthDef( name , {
-
-				| gate = 1, env_attack = 0.5, env_decay  = 0.5, env_sustain = 1, env_release = 1,
-				filter_attack = 0.5, filter_decay  = 0.5, filter_sustain = 1, filter_release  = 1,
+				| gate = 1, env_attack = 0.5, env_decay  = 0.5, env_sustain = 1,
+				env_release = 1,filter_attack = 0.5, filter_decay  = 0.5,
+				filter_sustain = 1,filter_release  = 1,
 				filter_cutoff=10000, filter_reso=3 ,vol = 1|
 				var signal,env,amp,fenv,filter;
 				//amp env
@@ -71,16 +72,13 @@ StormSynth : StormObject  {
 					releaseTime:filter_release );
 				filter=EnvGen.kr(fenv,gate:gate).exprange(50,filter_cutoff);
 				signal = SynthDef.wrap(graphFunc);
-				signal = filter.ar( signal,filter,filter_reso);
+				signal = MoogFF.ar(signal,filter,filter_reso);
 				signal = signal * amp * vol;
 				Out.ar( [0,1]  , signal );
 				DetectSilence.ar(signal,doneAction:2);
-			} ).add;
-
+			} ).add();
+			StormServer.scServer.sync;
 			this.createControls();
-
-			StormServer.sync;
-
 			//restore previous values if there are
 			if (prevParameterValues.isNil.not){
 				prevParameterValues.forEach({
@@ -96,15 +94,14 @@ StormSynth : StormObject  {
 	}
 
 	createControls{
-		SynthDescLib.global.synthDescs[name].controls.do({
+		SynthDescLib.global.synthDescs.at(name).controls.do({
 			|control|
 			var exclude = [\freq , \gate];
 			if ( [\freq , \gate].includesEqual(control.name).not ){
-				buses[ control.name ] = Bus.control.set(
-					controls[ control.name ].default
-				);
+				buses[ control.name ] = Bus.control.set(control.defaultValue);
 				sequencer.set(control.name, buses[ control.name ].asMap);
-				controls[control.name] = StormControl.new(control.name, buses[control.name], view);
+				controls[control.name] = StormControl.new(
+					control.name, buses[control.name], view);
 			};
 		});
 	}

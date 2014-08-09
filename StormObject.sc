@@ -16,8 +16,10 @@ StormObject{
 
 	makeGUI {
 		|parent|
-		view = View.new(parent,
+		{
+			view = View.new(parent,
 			Point(width,height)).background_(Color.white);
+		}.defer;
 		^this;
 	}
 

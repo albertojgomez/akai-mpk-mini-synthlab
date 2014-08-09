@@ -10,7 +10,7 @@ StormControl : StormObject{
 
 	*new {
 		|cName, cBus, cParentView|
-		if (cName.isNil | cBus.isNil) {
+		if (cName.isNil || cBus.isNil) {
 			Exception("StormControl:Control name or Bus not provided");
 		};
 		^super.new(cParentView).initStormControl(cName, cBus, cParentView);
