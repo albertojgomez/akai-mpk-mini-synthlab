@@ -1,18 +1,10 @@
 StormSynth : StormObject  {
-	classvar width = 640 , height = 125, <>synths, <>group, <>allSequencers;
-	var <>controls, <>buses, <>name, <>graphFunction, <>noteMatrix, <>sequencer;
+	classvar width = 640 , height = 125, <>synths, <>group;
+	var <>controls, <>buses, <>name, <>graphFunction,
+	<>noteMatrix, <>sequencer, <>score, <>pattern;
 
 	*initialize{
-		group = Group.new(StormServer.scServer,\addToTail);
-		//add enogh sequencers
-		allSequencers = List.new(20);
-		20.do({
-			|i|
-			allSequencers.add(PbindProxy.new.set(\freq,\rest).set(\group,group));
-		});
-		StormServer.clock.schedAbs(StormServer.clock.nextTimeOnGrid(64), {
-			Ppar(allSequencers).play(quant:4)
-		});
+		group = Group.new(StormServer.scServer,\addToHead);
 		synths = ();
 	}
 
@@ -42,8 +34,6 @@ StormSynth : StormObject  {
 				prevParameterValues[name] = control.getValue();
 			});
 			prevSynth.destroy();
-		}{
-			sequencer = allSequencers.pop();
 		};
 		//wrap in routine so that we can sync with server and get controls
 		{
@@ -79,6 +69,7 @@ StormSynth : StormObject  {
 			} ).add();
 			StormServer.scServer.sync;
 			this.createControls();
+			this.createSequencer();
 			//restore previous values if there are
 			if (prevParameterValues.isNil.not){
 				prevParameterValues.forEach({
@@ -93,13 +84,31 @@ StormSynth : StormObject  {
 		^this;
 	}
 
+	createSequencer{
+		var paramList;
+		//2 * instrumetn, freq , dur, group
+		sequencer = List.new((controls.size * 2) + 8);
+		controls.forEach({
+			|value, key|
+			sequencer.add(key).add(value.object.asMap);
+		});
+		sequencer.add(\instrument).add(name);
+		sequencer.add(\group).add(group);
+		score = PatternProxy(Pseq([60],inf));
+		sequencer.add(\freq).add(score);
+		sequencer.postln;
+		StormServer.clock.schedAbs(StormServer.clock.nextTimeOnGrid(64), {
+			pattern = Pbind(*sequencer).play(quant:4)
+		});
+
+	}
+
 	createControls{
 		SynthDescLib.global.synthDescs.at(name).controls.do({
 			|control|
 			var exclude = [\freq , \gate];
 			if ( [\freq , \gate].includesEqual(control.name).not ){
 				buses[ control.name ] = Bus.control.set(control.defaultValue);
-				sequencer.set(control.name, buses[ control.name ].asMap);
 				controls[control.name] = StormControl.new(
 					control.name, buses[control.name], view);
 			};
@@ -110,7 +119,7 @@ StormSynth : StormObject  {
 	noteOn {
 		|midinote = 40|
 		var e;
-		if (noteMatrix[midinote].inNil){
+		if (noteMatrix[midinote].isNil){
 			e = List[] ;
 			controls.do({
 				|contr|
@@ -119,15 +128,16 @@ StormSynth : StormObject  {
 			});
 			e.add(\freq);
 			e.add(midinote.midicps);
-			^noteMatrix[midinote] = Synth(name,e);
+			^noteMatrix[midinote] = Synth(name,e,group);
 		};
 	}
 
 	noteOff {
 		|midinote = 40|
 		var e;
-		if (noteMatrix[midinote].inNil.not){
+		if (noteMatrix[midinote].isNil.not){
 			noteMatrix[midinote].release();
+			noteMatrix[midinote] = nil;
 		};
 	}
 
@@ -137,6 +147,8 @@ StormSynth : StormObject  {
 			|value, key|
 			value.free();
 		});
+		//need to call play in order to have EventStreamPlayer to stop
+		sequencer.play.stop;
 	}
 
 }

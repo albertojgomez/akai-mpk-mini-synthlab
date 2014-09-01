@@ -94,6 +94,11 @@ StormServer {
 		}.fork;
 	}
 
+	*schedule{
+		|function|
+		clock.schedAbs(clock.nextTimeOnGrid(64), function);
+	}
+
 	*panic{
 		Server.freeAll;
 	}
