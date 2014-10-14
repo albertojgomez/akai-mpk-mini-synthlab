@@ -1,8 +1,21 @@
-StormSynth.allSequencers.size
+ScaleInfo.names
+Pseries
+(
+p = Pbind(
+        // making 'n' a separate stream so that degree and dur can share it
+
+    \degree, Pstutter(Pseq(Scale.choose.postln.degrees.reverse ,\inf), Pwhite(-4, 11, inf),inf),
+	\dur, Pstutter(Pseq([40,60,20],\inf), Pwhite(2, 6, inf),inf),
+    \legato, 0.3,
+\instrument, \PW
+).play;
+)
+
+Pbrown
 (
 a = StormSynth({
 	|freq|
-	Pulse.ar(freq * SinOsc.kr(freq).range(0.95,1.05));
+	Pulse.ar(freq * 2 * SinOsc.kr(freq/4).range(0.95,1.05));
 },\PW)
 )
 
@@ -10,55 +23,20 @@ a = StormSynth({
 a = StormSynth({
 	|freq|
 	LFTri.ar(freq*10 * SinOsc.kr(freq).range(0.95,1.05));
-},\PWw)
+},\PW)
 )
-StormSynth.group
-"Sounds".resolveRelative
-PathName("Sounds".resolveRelative).filesDo({|i| i.fileName.postln})
+StormServer.clock.tempo=1
 
-Path
-w=a.controls.keys.asArray
-*w
-a.buses[]
+label
+Knob(a.controls[\filter_cutoff].view,60@60)
+a.buses[\filter_reso].getSynchronous
+a.buses[\filter_reso].set(4)
 a.sequencer]
-a.score.source = Pseq([40],inf);
+a.score.source = Pseq(Scale.choose.postln.degrees.postln ++ [\rest,\rest]  + 40,inf);
+a.score.source = Pseq([\rest],inf);
 a.sequencer.play
 a.noteOn(30)
 a.noteOff(30)
 a.noteMatrix[81].release
-StormServer.clock.tempo=5
-(
-e = (\instrument:\PW);
-a.buses.forEach({
-	|value, key|
+StormServer.clock.tempo=1
 
-	e[key] = value.asMap;
-
-});
-
-
-
-	e.play;
-
-	e.postln;
-)
-
-)
-a.buses['vol'].set(1);
-z=[]
-Pbind(*w);
-a.release
-(
-a = SynthDef(\LEL, {
-	|freq = 400|
-	s = SynthDef.wrap({
-		SinOsc.ar(freq)
-	});
-	Out.ar(1,s);
-}).add
-
-)
-trace
-SynthDescLib.global.synthDescs[\PW].controls[0].defaultValue
-
-SynthDescLib.default.synthDescs.do({|s|s.name.postln})

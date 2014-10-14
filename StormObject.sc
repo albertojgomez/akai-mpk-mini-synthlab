@@ -18,7 +18,8 @@ StormObject{
 		|parent|
 		{
 			view = View.new(parent,
-			Point(width,height)).background_(Color.white);
+				this.getDimensions()).background_(Color.rand);
+			view.decorator = FlowLayout( view.bounds, 0@0, 0@0 );
 		}.defer;
 		^this;
 	}

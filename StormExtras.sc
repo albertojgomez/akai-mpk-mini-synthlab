@@ -6,4 +6,15 @@
 			callback.value(this[key],key);
 		})
 	}
+
+	atIndex{
+		|index|
+		var keys;
+		keys = this.keys.asArray();
+		if (index >= size ){
+		  ^nil;
+		}{
+			^this[keys[index]];
+		}
+	}
 }

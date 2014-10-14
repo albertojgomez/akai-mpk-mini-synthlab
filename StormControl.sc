@@ -2,7 +2,7 @@
 /* All controls ARE KNOBS*/
 StormControl : StormObject{
 	classvar width = 60 , height = 60, <>controls;
-	var <>name, <>object, value, controlSpec;
+	var <>name, <>object, value, <>controlSpec, <>knob, <>text;
 
 	*initClass{
 		controls = ();
@@ -17,11 +17,24 @@ StormControl : StormObject{
     }
 
 	initStormControl{
-		//TODO : use ControlSpec!!!!!!
 		|cName,cBus, cParentView|
 		object = cBus;
 		name = cName;
 		controlSpec = StormControl.makeControlSpec(name);
+		{
+			var textparts;
+			knob = Knob(view,25@25);
+			knob.mode = \vert;
+			knob.value = controlSpec.unmap(object.getSynchronous);
+			knob.action={
+				|k|
+				object.set(controlSpec.map(k.value));
+			};
+			text = StaticText(view,35@30)
+			.string_(name.asString.replace("_","\n"))
+				.font_(Font("Monaco", 10));
+
+		}.defer;
 		^this;
 	}
 
@@ -32,8 +45,10 @@ StormControl : StormObject{
 
 	setValue{
 		|newValue|
-		value = newValue;
-		object.set(newValue);
+		newValue.postln;
+		value = controlSpec.map(newValue);
+		object.set(value);
+		knob.value = value;
 		^value;
 		//change gui (defer),bus,ControlSpec....
 	}
@@ -76,6 +91,14 @@ StormControl : StormObject{
 		}{
 			^known[paramName]
 		};
+	}
+
+	getDimensions {
+		^Point(width,height);
+	}
+
+	destroy{
+		view.remove();
 	}
 
 }

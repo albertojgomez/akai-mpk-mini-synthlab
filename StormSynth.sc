@@ -42,10 +42,10 @@ StormSynth : StormObject  {
 			};
 			//do synth def
 			SynthDef( name , {
-				| gate = 1, env_attack = 0.5, env_decay  = 0.5, env_sustain = 1,
-				env_release = 1,filter_attack = 0.5, filter_decay  = 0.5,
-				filter_sustain = 1,filter_release  = 1,
-				filter_cutoff=10000, filter_reso=3 ,vol = 1|
+				| gate = 1, env_attack = 0, env_decay  = 0.2, env_sustain = 0.5,
+				env_release = 0.5,filter_attack = 0.001, filter_decay  = 0.2,
+				filter_sustain = 0.5,filter_release  = 0.5,
+				filter_cutoff=10000, filter_reso = 0.5 ,vol = 1, midivelocity = 127|
 				var signal,env,amp,fenv,filter;
 				//amp env
 				env=Env.adsr(
@@ -61,8 +61,8 @@ StormSynth : StormObject  {
 					sustainLevel:filter_sustain,
 					releaseTime:filter_release );
 				filter=EnvGen.kr(fenv,gate:gate).exprange(50,filter_cutoff);
-				signal = SynthDef.wrap(graphFunc);
-				signal = MoogFF.ar(signal,filter,filter_reso);
+				signal = SynthDef.wrap(graphFunc) ;
+				signal = MoogFF.ar(signal,filter,filter_reso * 4);
 				signal = signal * amp * vol;
 				Out.ar( [0,1]  , signal );
 				DetectSilence.ar(signal,doneAction:2);
@@ -94,9 +94,8 @@ StormSynth : StormObject  {
 		});
 		sequencer.add(\instrument).add(name);
 		sequencer.add(\group).add(group);
-		score = PatternProxy(Pseq([60],inf));
+		score = PatternProxy(Pseq([\rest],inf));
 		sequencer.add(\freq).add(score);
-		sequencer.postln;
 		StormServer.clock.schedAbs(StormServer.clock.nextTimeOnGrid(64), {
 			pattern = Pbind(*sequencer).play(quant:4)
 		});
@@ -117,7 +116,7 @@ StormSynth : StormObject  {
 
 	/*Return argument pairs list to use with Synth()*/
 	noteOn {
-		|midinote = 40|
+		|midinote = 40, velocity = 64|
 		var e;
 		if (noteMatrix[midinote].isNil){
 			e = List[] ;
@@ -128,6 +127,8 @@ StormSynth : StormObject  {
 			});
 			e.add(\freq);
 			e.add(midinote.midicps);
+			e.add(\midivelocity);
+			e.add(velocity);
 			^noteMatrix[midinote] = Synth(name,e,group);
 		};
 	}
@@ -142,13 +143,22 @@ StormSynth : StormObject  {
 	}
 
 	destroy{
-		//TODO destroy buses!
+		controls.forEach({
+			|control, name|
+			control.destroy();
+		});
 		buses.forEach({
 			|value, key|
 			value.free();
 		});
+		view.destroy();
+		StormServer.view.view.decorator.reset();
 		//need to call play in order to have EventStreamPlayer to stop
-		sequencer.play.stop;
+		pattern.play.stop;
+	}
+
+	getDimensions {
+		^Point(width,height);
 	}
 
 }

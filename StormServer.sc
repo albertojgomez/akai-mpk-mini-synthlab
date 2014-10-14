@@ -9,10 +9,11 @@ StormServer {
 			scServer.boot;
 			scServer.doWhenBooted({
 				/****  init clock   *****/
-				TempoClock.default.tempo = 135*4/60;
+				TempoClock.default.tempo = 125*4/60;
 				clock = TempoClock.default;
 				/****  init GUI   *****/
 				view = Window.new("⚡⚡⚡⚡._-5t0rmb0tn3t-_.⚡⚡⚡⚡", 1280@800).front;
+				view.view.decorator = FlowLayout( view.bounds, 0@0, 0@0 );
 				/****  init midi   *****/
 				StormMidi.initialize();
 				/* Init Synth resources*/
@@ -51,28 +52,18 @@ StormServer {
 		//Needs to go in StormDrums which NEEDS to inherit from Storm synths
 		if (scServer.options.inDevice == "Lexicon Alpha In/Out",{
 			scServer.doWhenBooted({
-				SynthDef("help-AudioIn2",{ arg out=[0,1];
-					~rightIn = AudioIn.ar(1);
-					Out.ar(Compander.ar( out),
-						[~rightIn,~rightIn]*0.5
-					)
-				}).play;
+				SynthDef("AudioIn",{
+					Out.ar(0,
+						Splay.ar([AudioIn.ar(1), FreeVerb.ar(
+							AudioIn.ar(2))],0.1 ) * 2);
 
-				SynthDef("help-AudioIn",{
-					arg out=[0,1];
-					var in  = AudioIn.ar(2);
-					in = Compander.ar(in,Amplitude.ar(in),0.001
-						slopeBelow: 100,
-						slopeAbove: 10,
-						clampTime: 0.1,
-						relaxTime: 0.1
-					);
-					~leftIn= in + DelayN.ar(LocalIn.ar(2), 0.3, 0.3);
-					Out.ar(out,
-						Splay.ar(GVerb.ar(~leftIn,100,6,mul:0.01)) + (~leftIn * 0.6)
-					);
-					LocalOut.ar(~leftIn.reverse * 0.1);
 				}).play;
+				/*SynthDef("help-AudioIn2",{
+					Out.ar(0, AudioIn.ar(1) ! 2)
+				}).play;
+				SynthDef("help-AudioIn",{
+					Out.ar(0, AudioIn.ar(2) ! 2);
+				}).play;*/
 			});
 		});
 	}
